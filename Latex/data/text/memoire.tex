@@ -1,0 +1,69 @@
+\documentclass[12pt,a4paper]{./../../template/memoire-umons}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage{amssymb,amsmath,amsthm}
+%\usepackage{hyperref}% hyperliens dans le PDF, pas pour impression
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,positioning}
+\usetikzlibrary{decorations.markings}
+
+
+
+
+\title{Algorithmes de localisation probabilistes sur une brique EV3}
+\author{Beno\^it \textsc{Hofbauer}}
+\date{2014--2015}
+%\directeur{Hadrien Melot}
+\directeurs{Hadrien M\'elot\\ Pierre Hauweele}
+%\codirecteurs{Pierre Hauweele}
+\service{Algorithmique}
+\rapporteurs{
+  Rapporteur 1\\
+  Rapporteur 2}
+\discipline{informatiques}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Vos macros
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Compile uniquement certains morceaux sans perdre les références
+% automatiques et la table des matières des parties déjà compilées :
+%\includeonly{introduction,chapitre1}
+
+\begin{document}
+% Éventuellement utiliser l'environnement « preface » pour avoir une
+% numérotation des pages en chiffres romains.
+\begin{preface}
+\include{preface}
+\end{preface}
+
+
+\tableofcontents
+\listoffigures
+
+%\include{introduction}
+\include{ProblemeDeLocalisation}
+\include{Mindstorm}
+\include{ImplementationsPersonnelle}
+\include{Conclusion}
+% etc
+
+% Si vous utilisez (conseillé) BibTeX pour votre bibliographie :
+\bibliographystyle{acm}
+
+
+\bibliography{memoire}% si le fichier BibTeX est memoire.bib
+
+\end{document}
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% TeX-PDF-mode: t
+%%% End: 

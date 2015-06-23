@@ -1,0 +1,299 @@
+\chapter{Problème de localisation}
+\section{Explication du problème}
+Le problème de localisation d'un robot mobile consiste à déterminer sa position à un instant donné sur une carte donnée. Pour atteindre cet objectif, le robot a à sa disposition les mouvements qu'il a réalisés, des mesures provenant de ses capteurs ainsi qu'une carte de son environnement. 
+
+Cette situation peut facilement être comparée à un promeneur cherchant sa position dans la nature avec une carte topographique. Cette personne n'a à sa disposition que les observations qu'elle peut réaliser (sans l'aide d'instrument de localisation comme un GPS). Elle peut se localiser à l'aide des montagnes qui sont des points de repère intéressants. Elle peut également essayer de trouver des ressemblances avec le chemin qu'elle parcourt et ce qu'elle peut observer sur la carte. Cependant, il est difficile d'estimer exactement la distance qui sépare cette personne de la montagne. La distance parcourue par cette personne entre deux points est également difficile à estimer sans erreur.  Toutes ces informations sont donc approximatives.
+Malgré ces erreurs d'approximations, grâce à la quantité d'informations accumulées durant son parcours cette personne a de fortes chances d'être de plus en plus certaine de sa position. En effet, en début de parcours, cette personne peut supposer être à un ensemble d'endroits différents à la suite d'un manque d'informations en sa possession. Par la suite grâce aux nouvelles informations elle peut procéder par élimination pour déterminer sa position.
+
+Il s'avère que les robots doivent faire face aux mêmes types de problèmes pour se localiser. Grâce à l'odométrie, il est possible de déterminer les mouvements du robot en fonction de la rotation de chacun des moteurs du robot. À l'aide de capteurs tels que les capteurs infrarouges, il est possible de déterminer la distance entre la position du robot et un objet. Cependant comme pour le promeneur ces informations sont entachées d'erreurs de précisions. De plus, dans le cas des capteurs de distance infrarouges ou ultrasoniques, les ondes peuvent être réfléchies de façon inattendue selon la forme et la matière de la surface de l'objet réfléchissant l'onde. Une solution naïve serait de vouloir acheter des détecteurs et des moteurs toujours plus précis. Cependant, le cout des capteurs plus précis est plus important. De plus, des erreurs peuvent être impossibles à gérer à l'aide de matériel plus précis. En effet, il peut arriver que les roues du robot n'adhèrent pas parfaitement à la route. Ce qui entraine le glissement des roues et donc bien que le robot reste immobile, les moteurs enregistreront un mouvement. Finalement, les capteurs ont également des limitations physiques, il est par exemple impossible pour une caméra de voir à travers les murs.  
+
+La prédictibilité de l'environnement est un élément important dans le choix d'appliquer ou non des algorithmes probabilistes. Dans le cas d'un environnement bien structuré comme une chaine de montage, le degré de prédictibilité est bien plus important que lorsque le robot évolue en ville ou dans une maison. L'imprédictibilité augmente fortement lorsque le robot évolue dans un environnement en présence de personnes. Les algorithmes probabilistes permettent de pallier à l'imprédictibilité d'un environnement. 
+
+
+\section{Définition formelle du problème}
+\subsection{Modèle de mouvement et d'observation}
+
+L'objectif de la localisation d'un robot est de définir sur une carte la position du robot à un instant donné. Cette position est dénotée par le vecteur $x_t$. 
+Dans la suite de ce mémoire, la position du robot est définie par ses coordonnées dans un espace à deux dimensions ainsi que par son orientation. Les algorithmes présentés ne se limitent pas à cette situation et peuvent être utilisés pour un espace à un nombre de dimensions supérieures. L'état des bras des robots industriels\cite{osha.gov} peut également être représenté à l'aide de l'angle de chaque articulation du bras. Toutefois, les principes sont plus simples à comprendre dans cette situation et cette situation est souvent suffisante pour les robots mobiles. Formellement, la position d'un robot dans un espace à deux dimensions peut-être définit par le vecteur :
+$$ x_t = \begin{pmatrix} x \\ y \\ \theta \end{pmatrix}$$
+
+où $x, y$ correspondent aux coordonnées dans un espace à deux dimensions et $\theta$ correspond à l'orientation du robot (voir ~\ref{PR2D}). 
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/PositionRobot.png}
+\end{center}
+\caption{Position d'un robot dans un espace à deux dimensions}
+\label{PR2D}
+\end{figure}
+
+Pour déterminer la position du robot dans le temps, il faut prendre en considération les contrôles du robot (notés : $u_t$) ainsi que les observations effectuées par le robot (notées : $z_t$). Les algorithmes qui seront présentés par suite suivent l'hypothèse de Markov. C'est-à-dire que l'état $x_{t}$ ne dépend que de l'état $x_{t-1}$ ainsi que des contrôles $u_{t}$ et des observations courantes $z_{t}$(voir figure ~\ref{HM}). 
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/HypotheseMarkov.png}
+\end{center}
+\caption{Hypothèse de Markov permettant de déterminer la position actuelle du robot}
+\label{HM}
+\end{figure}
+
+Formellement, les contrôles peuvent être définis par le vecteur suivant :
+$$u_t =  \begin{pmatrix} d_t \\ \gamma_t \end{pmatrix} $$
+où $d_t$ correspond à la distance parcourue et $\gamma_t$ correspond à l'angle de rotation du robot. L'odométrie permet de déterminer les commandes $u_t$. Les valeurs de $u_t$ permettent de définir itérativement les nouvelles positions à l'aide de l'équation suivante : 
+$$x_{t}= \begin{pmatrix} x_{t-1}+ d_t \cos (\theta_{t-1} + \gamma_t)\\ y_{t-1} + d_t \sin (\theta_{t-1} + \gamma_t)\\ \theta_{t-1} + \gamma_t \end{pmatrix}$$
+
+
+Les observations effectuées par le robot peuvent être définies par le vecteur suivant :
+$$ z_t = \begin{pmatrix} d_t^z \\ \rho_t \end{pmatrix}$$
+où $d_t^z$ correspond à la distance entre le robot et l'élément détecté et $\rho_t$ correspond à l'angle formé entre l'orientation du robot et la position de l'élément. 
+
+Il est important de remarquer que le modèle de mouvement et le modèle  d'observation présentés sont des exemples et doivent évidemment être adaptés aux différents robots. 
+
+
+
+Ces équations ne sont vraies que si les valeurs retournées par les moteurs et capteurs étaient 100 \% juste, ce qui n'est évidemment pas le cas. En effet, ces données sont sujettes à des erreurs de mesures. Il est intéressant de remarquer que si l'odométrie n'était pas sujette à des erreurs de mesures, il ne serait pas utile d'équiper ses robots de capteurs pour les localiser, l'odométrie serait suffisante. 
+
+\subsection{Algorithme de localisation de Markov}
+Dans ce mémoire les algorithmes développés sont des algorithmes de localisation probabiliste. L'approche probabiliste permet d'intégrer les erreurs de précision des capteurs dans l'algorithme et leur objectif est de déterminer la fonction de densité de probabilité du vecteur aléatoire associée X. 
+$$E \rightarrow [0;1]: x \mapsto p(X = x)$$
+
+ L'algorithme ~\ref{alg:Markovlocalisation} qui est décrit en pseudocode correspond à l'algorithme de localisation de Markov qui est à la base de tout les algorithmes de localisation qui sont présentés dans ce mémoire. Il décrit la mise à jour de la position $x_{t-1}$ vers l'état $x_t$. Il prend en paramètre la croyance de la position précédente (c'est-à-dire la fonction de densité de probabilité du vecteur  de position x), le contrôle courant, les observations courantes ainsi que la carte dans laquelle le robot évolue. Il est constitué d'une boucle principale, qui itère sur toutes les valeurs possibles pour la position $x_t$. Cette boucle contient deux étapes importantes. La première étape se nomme «la prédiction» et consiste à calculer une croyance temporaire $\overline{bel}$ de la position du robot à l'aide de $u_t$ et de la croyance de l'étape précédente $bel(x_{t-1})$. La seconde étape correspond à la mise à jour de la croyance $bel(x_t)$ à l'aide des mesures $z_t$ et de la croyance $\overline{bel}(x_t)$ calculée dans l'étape de prédiction.
+
+\begin{algorithm}
+\caption{ Localisation de Markov  }\label{alg:Markovlocalisation}
+\begin{algorithmic}[1]
+\Procedure{Markov}{$bel(x_{t-1}),u_t , z_t, m $}
+\ForAll {$ x_t $}
+\State $\overline{bel}(x_t) \gets \int p(x_t \mid u_t, x_{t-1},m)bel(x_{t-1}) dx_{t-1} $  \Comment{prédiction}
+\State $bel(x_t) \gets \eta  p(z_t \mid x_t, m )\overline{bel}(x_t)$  \Comment{mise à jour}
+\EndFor
+\State \textbf{return} $bel(x_t)$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+La figure ~\ref{ILM} illustre une situation où l'algorithme de Markov est appliqué. Dans cette illustration, le robot se déplace dans un monde en 1 dimension. Le robot est capable de se déplacer vers la droite ou la gauche. Il peut déterminer avec une certaine probabilité s'il se trouve devant une porte ou non. Il peut aussi déterminer avec une certaine probabilité la position dans laquelle il se trouve à l'aide des déplacements qu'il a effectués. Dans l'image « a », le robot n'a encore effectué aucun déplacement ni observation et n'a aucune information initiale sur sa position. Il a donc une probabilité uniforme de se trouver sur n'importe quel point de la carte. Dans l'image « b », le robot observe qu'il se trouve devant une porte. Cette observation permet au robot de déduire qu'il est devant une des trois portes de la carte. La probabilité autour des portes augmente en conséquence. Dans l'image « c », le robot se déplace vers la droite. Ce qui implique de déplacer également la fonction de la croyance de sa position initiale. Ce déplacement implique une diminution de la croyance de sa position due aux erreurs d'estimation du déplacement. Cette diminution de la croyance est représentée par un aplatissement des différentes gaussiennes. Dans l'image « d », le robot découvre à nouveau une porte. Ce qui augmente encore sa croyance en sa position. Et finalement, l'image « e », démontre encore une fois que les déplacements diminuent la croyance de la position du robot. 
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/LocalisationMarkovExemple.png}
+\end{center}
+\caption{Idée générale de la localisation de Markov}
+\label{ILM}
+\end{figure}
+
+Les algorithmes probabilistes souffrent de deux défauts importants en comparaison aux techniques traditionnelles de programmation en robotique. La première est la complexité en temps de calcul de l'algorithme qui augmente. En effet, dans les algorithmes probabilistes on considère toute la fonction de densité de probabilité lorsque les algorithmes classiques ne considèrent qu'un élément.  La deuxième est le besoin d'utiliser des approximations de la densité de probabilité exacte. Considérer la fonction de densité exacte devient vite impossible à calculer et est donc indispensable d'utiliser des approximations comme des Gausiennes ou un nombre restreint des éléments de la fonction de densité. Dans certaines situations, ces représentations peuvent être éloignées de la réalité. Cependant, l'augmentation de la puissance de calcul des processeurs ainsi que les recherches d'algorithmes plus efficients permettent de grandes évolutions dans le domaine. Toutefois, ces deux points restent encore problématiques. Ces deux points sont donc discutés dans la présentation des algorithmes de localisation suivants.   
+
+
+\section{Algorithmes de résolution du problème de localisation}
+L'algorithme de Markov permet de donner l'idée générale des algorithmes de localisation. Cependant pour pouvoir implémenter concrètement un algorithme de localisation un certain nombre de questions sont encore ouvertes. La plus importante correspond à la représentation de la fonction de probabilité. Deux grandes approches existent. La première définit une fonction de probabilité à l'aide de ses paramètres. Et la seconde représente la probabilité à l'aide d'un certain nombre d'éléments discrets. Les sections suivantes discutent de ces deux approches. Elles présentent les algorithmes EKF et MCL qui font partie des algorithmes de localisation les plus connus et qui présentent de bons résultats en pratique. 
+
+\subsection{ Algorithme paramétrique(EKF)}
+Les algorithmes paramétriques permettent de représenter les croyances de la position d'un robot à l'aide de lois de probabilité. Les concepts mathématiques de l'algorithme de Kalman ont été développés dans les années 60 \cite{Kalman61newresults}. Dans le cas de l'algorithme Kalman Filter(KF) la loi de probabilité est une loi normale. Elle dépend donc de deux paramètres son espérance $\mu$ et son écart type $\sigma $. Cette loi normale est une loi normale multivariée lorsque le vecteur de position est composé de plusieurs éléments. On définit alors la moyenne de cette fonction multivariée comme suit  $$\mu = x_t =  \begin{pmatrix} x\\y\\ \theta  \end{pmatrix}$$ 
+
+
+\begin{algorithm}
+\caption{ Kalman filter  }\label{alg:kalmanFilter}
+\begin{algorithmic}[1]
+\Procedure{KalmanFilter}{$ \mu_{t-1}, \Sigma_{t-1}, u_t, z_t  $}  
+\State $ \overline{\mu_t} \gets  A_t \mu_{t-1} + B_t u_t$  \Comment{prédiction}
+\State $ \overline{\Sigma_t } \gets A_t + \Sigma_{t-1} A_t^T+ R_t$ \Comment{prédiction}
+\State $ K_t \gets \overline{\Sigma}_t C_t^T (C_t \overline{\Sigma}_t C^T_t + Q_t )^{-1}$ \Comment{Kalman Gain}
+\State $ \mu_t \gets  \overline{\mu}_t  + K_t(z_t - C_t \overline{\mu}_t)  $ \Comment{mise à jour}
+\State $ \Sigma_t \gets (I - K_tC_t)\overline{\Sigma}_t$ \Comment{mise à jour}
+\State \textbf{return} $ \mu_t,\Sigma_t$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{ Extended Kalman filter  }\label{alg:ExtendedKalmanFilter}
+\begin{algorithmic}[1]
+\Procedure{ExtendedKalmanFilter }{$ \mu_{t-1}, \Sigma_{t-1}, u_t, z_t  $}  
+\State $ \overline{\mu_t} \gets  g(u_t,\mu_{t-1})$  \Comment{prédiction}
+\State $ \overline{\Sigma_t } \gets G_t \Sigma_{t-1} G_t^T+ R_t$ \Comment{prédiction}
+\State $ K_t \gets \overline{\Sigma}_t H_t^T (H_t \overline{\Sigma}_t H^T_t + Q_t )^{-1}$ \Comment{Kalman Gain}
+\State $ \mu_t \gets  \overline{\mu}_t  + K_t(z_t - h(\overline{\mu}_t))  $ \Comment{mise à jour}
+\State $ \Sigma_t \gets (I - K_tH_t)\overline{\Sigma}_t$ \Comment{mise à jour}
+\State \textbf{return} $ \mu_t,\Sigma_t$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+L'algorithme Extended Kalman filter(EKF) correspond à la version non linearaire de l'algorithme du filtre de Kalman. Cette variante a été développée 
+quelques années plus tard  par la NASA\cite{Smith1962} pour faire face au fait que la plupart des systèmes physiques ne sont pas linéaires. Pour ce faire les fonctions $g$ et $h$ ont été introduites. Ces fonctions ne doivent pas obligatoirement être linéaire mais doivent être dérivables. Contrairement ou filtre de Kalman classique où les fonctions sont obligatoirement linéaire pour préserver des fonctions de répartition gausienne.
+
+
+
+\subsection{Algorithme non paramétrique(MCL) }
+À l'inverse des algorithmes paramétriques, les algorithmes non paramétriques ne sont pas basés sur une loi de probabilité connue dont l'algorithme arrange les paramètres pour correspondre au mieux à la croyance de la position. Dans les algorithmes non paramétriques, la croyance est représentée par nombre déterminé de positions supposées. Une probabilité est associée à ces positions supposées. Plusieurs techniques existent pour représenter ses positions supposées. 
+
+La première technique consiste à découper la carte de l'environnement en une grille où chaque élément de la grille correspond à une position supposée\cite{4621305}. Pour représenter l'orientation du robot, il faut multiplier le nombre de cases par le nombre d'angles d'orientation que peut prendre le robot (voir ~\ref{img:gridMap}).Dans cette représentation, seules trois orientations sont possibles. Ces trois orientations correspondent aux trois plans de la représentation. Comme on peut s'en rendre compte, il est très important de définir la bonne granularité de la découpe. Une découpe trop importante augmente le temps de calcul, alors qu'une grille trop peu découpée rend la localisation trop peu précise. Dans ce type de découpe, plus la carte est grande et plus le temps de calcul est important. 
+
+Dans le cas de l'algorithme de Monte Carlo localization (MCL) aussi appelé Particle filter localization \cite{bib:Rekleitis2004}  car il utilise un filtre à particule, une approche différente a été choisie. Dans cet algorithme (voir l'algorithme ~\ref{alg:MCL }) la croyance de la position est représentée par M particules(voir ~\ref{img:MCL}). Chaque particule est considérée comme une hypothèse sur la position du robot. Plus une région de la carte contient de particules et plus la probabilité que le robot s'y trouve est grande. Contrairement aux algorithmes basés sur la découpe de la carte en une grille, MCL n'implique pas un temps de calcul supplémentaire lorsque la taille de la carte augmente. Cependant, il est possible de choisir d'augmenter le nombre de particules pour augmenter la précision. 
+
+MCL souffre d'un problème important, en particulier quand $M< 50$ et que l'environnement du robot est grand. Il peut arriver que l'ensemble des particules converge vers une position erronée. Une fois cette convergence atteinte il est difficile d'en sortir. Pour pallier à ce problème, à chaque itération un certain nombre de particules sont redistribuées aléatoirement dans la carte. 
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.6]{./../img/mcl.png}
+\end{center}
+\caption{Illustration de MCL, les traits gris correspondent aux particules et le niveau de rouge représente la probabilité associée}
+\label{img:MCL}
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.6]{./../img/gridMap.png}
+\end{center}
+\caption{Illustration de la carte en grille}
+\label{img:gridMap}
+\end{figure}
+
+
+
+\begin{algorithm}
+\caption{ MCL  }\label{alg:MCL }
+\begin{algorithmic}[1]
+\Procedure{MCL }{$ \mathcal{X}_{t-1}, u_t, z_t ,m $}  
+\State $ \overline{\mathcal{X}_t} \gets  \emptyset $  
+\State $ \mathcal{X}_t \gets  \emptyset $  
+
+\For {$ m = 1$ to  M }
+\State  $ x^{[m]}_t \gets sample\_motion\_model(u_t , x^{[m]}_{t-1})$
+\State $w_t^{[m]} \gets measurement\_model(z_t , x_t^{[m]},m)$
+\State $ \overline{\mathcal{X}}_t \gets \overline{\mathcal{X}}_t + \langle  x^{[m]}_t , w_t^{[m]} \rangle $
+\EndFor
+
+\For {$ m = 1$ to  M }
+\State draw i  with probability $\propto w^{[i]}_t$
+\State add $x^{[i]}_t$ to $\mathcal{X}_t$
+\EndFor
+\State \textbf{return} $ \mathcal{X}_t$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Comparaison de MCL et EKF}
+Le tableau ~\ref{MCLVSEKF} donne et compare les principales caractéristiques de l'algorithme EKF et MCL. Ce tableau comparatif permet de mettre en valeur qu'aucun algorithme n'est globalement meilleur. Ils possèdent chacun leurs qualités et défauts. Les défauts de l'un se révèlent les qualités de l'autre. Par exemple, EKF est efficient en temps et mémoire contrairement au MCL dont l'efficience dépend fortement du nombre de particules. 
+
+Cependant, MCL est plus robuste à EKF. En effet, la représentation de la fonction de probabilité à l'aide d'une loi normale permet à EKF d'être efficient. Cependant, le revers de cette efficience est qu'il est moins robuste lorsque la fonction de probabilité est fortement différente d'une loi normale. Prenons l'exemple d'un long couloir avec un grand nombre de portes et où le robot n'est pas capable de distinguer les portes. Dans cette situation MCL peut donner de meilleures performances. En effet, EKF assume que la croyance de la position est proche d'une distribution gaussienne et a donc de mauvaises performances lorsque la croyance correspond plutôt à distribution multimodale. Pour pallier à ce problème, l'algorithme classique EKF a été amélioré. Multi-hypothesis tracking (MHT)\cite{1263228} filtre permet de représenter la croyance à l'aide d'un mixte de plusieurs gaussienne et donc d'avoir un algorithme plus robuste et efficient.
+
+La localisation globale correspond à un problème de localisation où la position initiale n'est pas connue et l'incertitude est donc grande à cet instant. Il s'avère qu' EKF est plus approprié pour suivre la position d'un robot dont on connait déjà la position initiale. En effet, une représentation unimodale est généralement une bonne représentation dans un problème où il s?agit de suivre une position, mais pas dans un problème de localisation globale. La linéarisation dans EKF ne fait qu'accroitre ce problème en risquant de converger vers une mauvaise position.
+
+
+De plus, MCL permet de traiter directement dans l'algorithme des mesures brutes or EKF nécessite des repères. Il est donc possible à l'aide de MCL d'utiliser directement les valeurs de capteurs de distance entre le robot et des murs pour les comparer avec une carte représentant les murs. Ce qui n'est pas possible à l'aide de EKF qui nécessite une carte composée d'un nombre limité de repères qui permet de localiser le robot à l'aide des repères mesurés dans son environnement. Finalement, en pratique il s'avère que MCL est plus simple à implémenter qu'EKF.
+
+
+\begin{table}
+\begin{center} 
+
+\begin{tabular}{l | c | c }
+               & EKF & MCL \\
+               \hline
+Mesures & Repères & Brute \\ 
+Erreur de Mesure & Gaussienne & Toute \\
+Posterior &Gaussienne & Particules \\
+Efficience(mémoire) & ++ & + \\
+Efficience(temps)& ++ & + \\
+Facilité d'implémentation & + & ++ \\
+Résolution & ++ & + \\
+Robuste & - & ++ \\ 
+Localisation Globale & non & oui\\ 
+\hline 
+\end{tabular}
+\caption{Comparaison EKF et MCL}
+\label{MCLVSEKF} 
+\end{center}
+\end{table}
+
+
+\section{Simultaneous Localization And Mapping}
+Les algorithmes Slam (Simultaneous Localization And Mapping) sont l'étape suivante de l'indépendance des robots. En effet, dans les algorithmes de simple localisation, la carte de l'environnement doit être construite avant de la passer en paramètre aux algorithmes de localisation. Comme son nom l'indique, dans un algorithme Slam la carte est construite en parallèle avec la localisation du robot. 
+
+\begin{algorithm}
+\caption{ EKFSLAM  }\label{alg:EKFSLAM }
+\begin{algorithmic}[1]
+\Procedure{EKFSLAM }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m,c_t  $}  
+\State $ F_x \gets 
+\begin{pmatrix}
+1&0& 0\\
+0&1&0\\
+0&0&1\\
+\end{pmatrix}
+$
+
+
+\State $\overline{\mu}_t \gets \mu_{t-1} +  F^T_x
+\begin{pmatrix}
+d \cos \\
+d \sin \\
+\gamma \\
+\end{pmatrix}
+$
+
+\State $G_t \gets I + F_x^T 
+\begin{pmatrix}
+0,0\\
+0,0\\
+0,0\\
+\end{pmatrix}$
+
+
+\State $\overline{\Sigma}_t \gets G_t \Sigma_{t-1}G_t^T + F_x^TR_tF_x $
+
+\State $ Q_t \gets 
+\begin{pmatrix}
+\sigma^2_r&0&0\\
+0&\sigma^2_r&0\\
+0&0&\sigma^2_r\\
+\end{pmatrix}$
+
+\ForAll{ observed features   {$ z^i_t \gets (d^i_t,\rho^i_t)^T $ }}
+\State $j \gets c_t^i$
+\If{landmark j never seen before}
+\State $
+\begin{pmatrix}
+\overline{\mu}_{j,x}\\
+\overline{\mu}_{j,y}\\
+\end{pmatrix}
+\gets 
+$ 
+\EndIf
+ 
+\State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$
+\State $ \hat{z}^i_t \gets 
+\begin{pmatrix}
+\sqrt{q}\\
+atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu_{t,\theta}}\\
+\end{pmatrix}
+$
+\State $H^i_t \gets
+\begin{pmatrix}
+-\frac{m_{j,x}-\overline{\mu}_{t,x}}{\sqrt{q}}     &    -\frac{m_{j,y}-\overline{\mu}_{t,y}}{\sqrt{q}}   &    0\\
+\frac{m_{j,y}-\overline{\mu}_{t,y}}{q} & -\frac{m_{j,x}-\overline{\mu}_{t,x}}{q}            &  -1\\
+
+\end{pmatrix}
+$ 
+
+\State $S^i_t \gets H^i_t \overline{\Sigma_t} [H^i_t]^T + Q_t $ 
+\State $ K_t^i \gets \overline{\Sigma}_t [H_t^i]^T [S^i_t ]^{-1}$ \Comment{Kalman Gain}
+
+\State $ \overline{\mu}_t \gets  \overline{\mu}_t  + K_t^i(z_t^i - \hat{z}^i_t ))  $ \Comment{mise à jour}
+\State $ \overline{\Sigma}_t \gets (I - K_t^iH_t^i)\overline{\Sigma}_t$ \Comment{mise à jour}
+
+\EndFor
+
+\State $ \mu_t \gets  \overline{\mu}_t $  
+
+\State $ \Sigma_t \gets \overline{\Sigma}_t $  
+
+\State \textbf{return} $ \mu_t , \Sigma_t $
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}

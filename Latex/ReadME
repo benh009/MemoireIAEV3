@@ -1,0 +1,8 @@
+//Mémoire basé sur le template de Mr Troesler
+
+
+
+//Pour séparer les fichiers sources des fichiers compilés 
+//Faire un fichier output 
+//Placer la biblio et générer .bbl
+//compiler le pdf

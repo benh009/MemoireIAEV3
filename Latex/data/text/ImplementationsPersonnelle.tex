@@ -1,0 +1,125 @@
+\chapter{Implémentation personnelle}
+Cette section contient la description de mon implémentation de l'algorithme EKF dans la librairie Lejos. Par la suite, l'implémentation de l'algorithme EKF est comparée à l'implémentation MCL déjà présente dans la librairie Lejos. 
+\section{Description du robot construit}
+La plateforme du robot est de type « differential wheeled robot »(voir ~\ref{DWR}). Ce qui consiste en deux moteurs indépendants positionnés de façons opposées sur le robot. Ce choix de plateforme est commun en robotique. Cette plateforme est simple à mettre en oeuvre et fournit une amplitude de mouvement importante. Les plateformes de type steering sont semblables aux voitures classiques. Elle demande un mécanisme plus complexe et leur amplitude de mouvement est moindre et donc moins adaptée à la robotique.
+
+\begin{figure}
+\begin{center}
+\includegraphics{./../img/DifferentialWheeledRobot.png}
+\end{center}
+\caption{Differential wheeled robot }
+\label{DWR}
+\end{figure}
+
+
+\section{Détection de Feature avec la caméra du smartphone}
+\label{sec:Detection de Feature avec la camera du smartphone}
+Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : http://zbar.sourceforge.net/} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smarphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire : un carré de 10cm de coté ). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10cm de coté(voir ~\ref{EDQRC}).
+$$Distance =  \frac{\frac{CapteurResolutionHorizontale }{MesureNombrePixelsHorinzontale} * LargeurCodeQR}  {2*\tan(\alpha)} $$
+
+
+\begin{figure}
+\begin{center}
+\input{schemaQrcodeM}
+\end{center}
+\caption{Évaluation de la distance des codes QR}
+\label{EDQRC}
+\end{figure}
+
+Il est également possible de déterminer l'angle entre la direction du robot et le centre du code QR à l'aide de la formule suivante : 
+
+$$\theta = \alpha-\frac{\alpha * 2*CentreCodeQRPixel}{ CapteurResolutionHorizontale} $$
+si le code QR se trouve à droite du robot la formule devient :
+$$\theta = \frac{\alpha * 2*CentreCodeQRPixel}{ CapteurResolutionHorizontale}-\alpha $$
+
+L'étalonnage consiste à déterminer $\alpha $ à l'aide de mesures faites à distance connue. 
+
+\section{Implémentation de l'algorithme EKF }
+L'implémentation EKF utilise la technique de détection de codes QR comme features présentées dans la section ~\ref{sec:Detection de Feature avec la camera du smartphone}. 
+
+Cette implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : http://commons.apache.org/proper/commons-math/}  qui est une librairie mathématique open-source de Apache. Celle-ci contient une série de classe permettant de manipuler et d'appliquer des opérations sur des matrices. Ce qui se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation du Extended Kalman Filter. 
+
+\begin{algorithm}
+\caption{ EKFCodeQR  }\label{alg:EKFCodeQR }
+\begin{algorithmic}[1]
+\Procedure{EKFCodeQR }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m  $}  
+\State $\theta \gets \mu_{t-1,\theta } $
+\State $ G_t \gets 
+\begin{pmatrix}
+1&0& -d_t \sin( \theta)\\
+0&1&d_t\cos(\theta)\\
+0&0&1\\
+\end{pmatrix}
+$
+\State $V_t \gets 
+\begin{pmatrix}
+\cos() & -d \sin\\
+\sin()& d_t \cos \\
+0&1\\
+\end{pmatrix}
+$
+\State $M_t \gets 
+\begin{pmatrix}
+\sigma^2 &0\\
+0&\sigma^2 \\ 
+\end{pmatrix}
+$
+
+\State $\overline{\mu}_t \gets \mu{t-1} + 
+\begin{pmatrix}
+d \cos \\
+d \sin \\
+\gamma \\
+\end{pmatrix}
+$
+
+
+\State $\overline{\Sigma}_t \gets G_t \Sigma_{t-1}G_t^T + V_tM_tV_t^T $
+\State $ Q \gets 
+\begin{pmatrix}
+\sigma^2_r&0&0\\
+0&\sigma^2_r&0\\
+0&0&\sigma^2_r\\
+\end{pmatrix}$
+
+\ForAll{ observed features   {$ z^i_t \gets (d^i_t,\rho^i_t)^T $ }}
+\State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$
+\State $ \hat{z}^i_t \gets 
+\begin{pmatrix}
+\sqrt{q}\\
+atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu_{t,\theta}}\\
+\end{pmatrix}
+$
+\State $H^i_t \gets
+\begin{pmatrix}
+-\frac{m_{j,x}-\overline{\mu}_{t,x}}{\sqrt{q}}     &    -\frac{m_{j,y}-\overline{\mu}_{t,y}}{\sqrt{q}}   &    0\\
+\frac{m_{j,y}-\overline{\mu}_{t,y}}{q} & -\frac{m_{j,x}-\overline{\mu}_{t,x}}{q}            &  -1\\
+
+\end{pmatrix}
+$ 
+
+\State $S^i_t \gets H^i_t \overline{\Sigma_t} [H^i_t]^T + Q_t $ 
+\State $ K_t^i \gets \overline{\Sigma}_t [H_t^i]^T [S^i_t ]^{-1}$ \Comment{Kalman Gain}
+
+\State $ \overline{\mu}_t \gets  \overline{\mu}_t  + K_t^i(z_t^i - \hat{z}^i_t ))  $ \Comment{mise à jour}
+\State $ \overline{\Sigma}_t \gets (I - K_t^iH_t^i)\overline{\Sigma}_t$ \Comment{mise à jour}
+
+\EndFor
+
+\State $ \mu_t \gets  \overline{\mu}_t $  
+
+\State $ \Sigma_t \gets \overline{\Sigma}_t $  
+
+\State \textbf{return} $ \mu_t , \Sigma_t $
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\section{Tests et résultats de l'implémentation de EKF}
+
+
+\section{Comparaison avec le MCL}
+
+\section{EKF Slam }
+
