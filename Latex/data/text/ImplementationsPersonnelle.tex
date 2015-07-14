@@ -6,15 +6,19 @@ La plateforme du robot est de type « differential wheeled robot »(voir ~\ref{DWR
 \begin{figure}
 \begin{center}
 \includegraphics{./../img/DifferentialWheeledRobot.png}
-\end{center}
 \caption{Differential wheeled robot }
+\source{\href{https://en.wikipedia.org/wiki/Differential_wheeled_robot}{Wikipedia},
+ Auteur : Patrik}
+
+\end{center}
 \label{DWR}
 \end{figure}
 
 
 \section{Détection de Feature avec la caméra du smartphone}
 \label{sec:Detection de Feature avec la camera du smartphone}
-Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : http://zbar.sourceforge.net/} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smarphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire : un carré de 10cm de coté ). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10cm de coté(voir ~\ref{EDQRC}).
+
+Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : \href{http://zbar.sourceforge.net/}{zbar.sourceforge.net}} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smarphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire : un carré de 10cm de coté ). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10cm de coté(voir ~\ref{EDQRC}).
 $$Distance =  \frac{\frac{CapteurResolutionHorizontale }{MesureNombrePixelsHorinzontale} * LargeurCodeQR}  {2*\tan(\alpha)} $$
 
 
@@ -37,7 +41,7 @@ L'étalonnage consiste à déterminer $\alpha $ à l'aide de mesures faites à distan
 \section{Implémentation de l'algorithme EKF }
 L'implémentation EKF utilise la technique de détection de codes QR comme features présentées dans la section ~\ref{sec:Detection de Feature avec la camera du smartphone}. 
 
-Cette implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : http://commons.apache.org/proper/commons-math/}  qui est une librairie mathématique open-source de Apache. Celle-ci contient une série de classe permettant de manipuler et d'appliquer des opérations sur des matrices. Ce qui se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation du Extended Kalman Filter. 
+Cette implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : \href{http://commons.apache.org/proper/commons-math/}{commons.apache.org/proper/commons-math}}  qui est une librairie mathématique open-source de Apache. Celle-ci contient une série de classe permettant de manipuler et d'appliquer des opérations sur des matrices. Ce qui se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation du Extended Kalman Filter. 
 
 \begin{algorithm}
 \caption{ EKFCodeQR  }\label{alg:EKFCodeQR }
