@@ -15,7 +15,11 @@ La plateforme du robot est de type « differential wheeled robot »(voir ~\ref{DWR
 \end{figure}
 
 
-\section{Détection de Feature avec la caméra du smartphone}
+
+
+\section{Implémentation de l'algorithme EKF }
+
+\subsection{Détection de Feature avec la caméra du smartphone}
 \label{sec:Detection de Feature avec la camera du smartphone}
 
 Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : \href{http://zbar.sourceforge.net/}{zbar.sourceforge.net}} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smarphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire : un carré de 10cm de coté ). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10cm de coté(voir ~\ref{EDQRC}).
@@ -38,10 +42,93 @@ $$\theta = \frac{\alpha * 2*CentreCodeQRPixel}{ CapteurResolutionHorizontale}-\a
 
 L'étalonnage consiste à déterminer $\alpha $ à l'aide de mesures faites à distance connue. 
 
-\section{Implémentation de l'algorithme EKF }
+
+
+\subsection{Les cartes }
+La carte qui stocke les positions des codes QR  et qui est utilisée par l'algorithme EKF est stockée dans une image au format SVG. Ce format consiste à définir des éléments graphiques simples dans un fichier XML. Les codes QR sont donc représentés par une ligne de 10cm de longueur. La figure ~\ref{ekfmap} représente cette carte où les codes QR sont représentés en rouge et les murs en noir. 
+Les murs sont également définis dans un fichier SVG différent. Cette décomposition des cartes est volontaire et elle permet de charger uniquement les sous-cartes utiles à l'algorithme. Il n'est par exemple pas utile pour l'algorithme MCL d'avoir la carte composée des codes QR.  
+
+En plus, de ces deux cartes qui ont été générées à la main au préalable. Une carte dynamique de type grille d'occupation est générée à l'aide du capteur infrarouge et du capteur de pression positionnée à l'avant du robot. 
+
+
+\begin{figure}
+\begin{center}
+
+\includegraphics[scale=0.7]{./../img/ekfmap.png}
+\caption{carte EKF }
+\label{ekfmap}
+\end{center}
+\end{figure}  
+
+\subsection{Pseudo-code}
+
 L'implémentation EKF utilise la technique de détection de codes QR comme features présentées dans la section ~\ref{sec:Detection de Feature avec la camera du smartphone}. 
 
+
 Cette implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : \href{http://commons.apache.org/proper/commons-math/}{commons.apache.org/proper/commons-math}}  qui est une librairie mathématique open-source de Apache. Celle-ci contient une série de classe permettant de manipuler et d'appliquer des opérations sur des matrices. Ce qui se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation du Extended Kalman Filter. 
+
+\subsection{Représentation de la matrice de covariance}
+La matrice de covariance est comme son nom l'indique une matrice qui permet de représenter la covariance entre chaque variable de la position du robot. Les valeurs contenues dans cette matrice sont très utiles, mais restent fastidieuses à lire, car cette matrice change dynamiquement et régulièrement. Il a donc été important d'implémenter une représentation graphique des informations importantes de cette matrice de covariance. Cette représentation permet de se faire une idée rapide de ces valeurs, sans devoir les analyser une à une. La figure~\ref{cov} présente la représentation choisie de la covariance. La moyenne donne la position estimée du robot. Cette position estimée est représentée par le point bleu central qui correspond à la position $x,y$ estimée du robot et la droite bleue au milieu des deux autres correspond à la direction estimée du robot. L'ellipse autour de la position ainsi que les deux autres droites permettent de représenter la matrice de covariance. Voici la définition de la covariance pour mieux comprendre ce que représente la covariance et comprendre comment sont construites cette ellipse et ces droites  : 
+
+$$ Cov(X,Y) = E[(X-E[X])(Y-E[Y])]  $$  
+où $E[] $ désigne l'espérance mathématique. La covariance caractérise la variation simultanée des deux variables aléatoires $X, Y$. Elle est positive lorsque la différence entre les variables aléatoire $X,Y$ et leur moyenne ont tendance à être de même signe et négative dans le cas contraire. Soit le vecteur de position écrit :
+$$\vec{X} = \begin{pmatrix} x \\ y \\ \theta \\ \end{pmatrix}$$
+
+La matrice de covariance pour le vecteur de position est la suivante :
+
+$$Var(\vec{X})= 
+\begin{pmatrix} 
+Var(x) & Cov(x,y)& Cov(x,\theta) \\ 
+Cov(y,x)& Var(y) & Cov(y,\theta) \\ 
+Cov(\theta,x) & Cov(\theta,y) & Var(\theta)\\
+\end{pmatrix}
+$$
+La diagonale de la matrice de covariance est composée des variances des variables aléatoires de $\vec{X}$ ce qui est normal, car $Cov(X,X)= Var(X)$. La matrice de covariance est une matrice symétrique, car $Cov(X,Y)=Cov(Y,X)$. Pour revenir à la représentation de la matrice de covariance,  l'angle d'écartement entre les deux droites de notre représentation est donné par $Var(\theta)$ ce qui caractérise donc la dispersion des valeurs de la direction du robot. Plus cette variance est petite et plus la direction estimée du robot est sure et inversement plus elle est grande et plus la direction est incertaine. L'ellipse est définie à l'aide de la sous-matrice suivante : 
+
+$$
+\begin{pmatrix} 
+Var(x) & Cov(x,y)\\ 
+Cov(y,x)& Var(y) \\ 
+\end{pmatrix}
+$$  
+Cette technique\footnote{ Ellipse représentation : \href{http://www.visiondummy.com/2014/04/draw-error-ellipse-representing-covariance-matrix/
+}{www.visiondummy.com}} qui permet de visualiser la covariance d'une matrice à l'aide d'une ellipse peut être appliqué à n'importe quelle matrice de covariance. 
+$Var(x)$ et $Var(y)$ permettent de définir la largeur et la hauteur de l'ellipse à l'aide de l'équation de l'ellipse suivante : 
+$$
+\left( \frac{x}{Var(x)} \right)^2 +\left ( \frac{y}{Var(y)}\right)^2 = 1 
+$$
+
+ Il faut maintenant déterminer l'orientation de l'ellipse.  Lorsque 
+$Cov(x,y) = 0$ l'orientation de l'ellipse est inchangée. De façon générale l'angle d'orientation peut être défini par la formule suivante :  
+
+
+$$
+\alpha = arctan2 ( V_1.y,V_1.x )
+$$
+
+où $V_1$ correspond au vecteur propre majeur et $\alpha$  correspond à l'angle entre $V_1$ et l'axe des x. Trouver le vecteur propre majeur consiste à résoudre l'équation suivante : 
+
+  $$
+  A\vec{v} = \lambda \vec(v)
+  $$
+où $A$ correspond à la matrice de covariance, $v$ le vecteur propre et $\lambda$ la valeur propre. Cette équation est résolue à l'aide de la libraire Commons Math déjà utilisée pour manipuler les matrices de l'algorithme EKF. Cette équation possède deux solutions. Le vecteur majeur correspond au vecteur qui possède la plus grande valeur propre. 
+
+
+\begin{figure}
+\begin{center}
+
+\includegraphics[scale=0.7]{./../img/covariance.png}
+\caption{Représentation de la covariance }
+\label{cov}
+\end{center}
+\end{figure}
+
+
+\subsection{Tests et résultats de l'implémentation de EKF}
+
+
+
+
 
 \begin{algorithm}
 \caption{ EKFCodeQR  }\label{alg:EKFCodeQR }
@@ -120,10 +207,9 @@ $
 \end{algorithm}
 
 
-\section{Tests et résultats de l'implémentation de EKF}
 
 
 \section{Comparaison avec le MCL}
 
-\section{EKF Slam }
+
 
