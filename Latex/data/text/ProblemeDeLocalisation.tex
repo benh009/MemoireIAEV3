@@ -1,12 +1,14 @@
-Cette partie présente les notions théoriques qui sont utilisées dans la seconde partie. La seconde partie consiste à  décrire l'implémentation de l'algorithme de localisation EKF sur un robot EV3. Cette implémentation est comparée à l'implémentation de l'algorithme de localisation MCL déjà présente dans la librairie Lejos qui est l?outil utilisé pour contrôler le robot EV3. Pour implémenter l'algorithme de localisation EKF, il est nécessaire de comprendre la logique des algorithmes de localisations. C'est pourquoi ces deux algorithmes de localisation qui sont les plus célèbres sont présentés dans cette partie. Ils sont ensuite comparés théoriquement. Ces algorithmes utilisent des cartes pour localiser le robot, la première section est donc destinée à présenter ces cartes. Pour le lecteur désirant en savoir plus, l'algorithme EKF SLAM et deux algorithmes de recherche de chemin sont présentés. La section SLAM décrit comment le robot peut simultanément construire et se localiser sur une carte. Les algorithmes de recherche de chemin permettent au robot d'aller d'un point de départ jusqu'à un point final sans percuter d'obstacle. Dans cette section l'algorithme A star et Dijkstra sont présentés, car  les implémentations de ces deux algorithmes sont présentes dans la librairie Lejos et ils sont utilisés dans ce projet. 
+Cette partie présente les notions théoriques qui sont utilisées dans la seconde partie. La seconde partie consiste à  décrire l'implémentation de l'algorithme de localisation EKF sur un robot EV3. Cette implémentation est comparée à l'implémentation de l'algorithme de localisation MCL déjà présente dans la librairie Lejos qui est l'outil utilisé pour contrôler le robot EV3. Pour implémenter l'algorithme de localisation EKF, il est nécessaire de comprendre la logique des algorithmes de localisation. C'est pourquoi ces deux algorithmes de localisation qui sont les plus célèbres sont présentés dans cette partie. Ils sont ensuite comparés théoriquement. Ces algorithmes utilisent des cartes pour localiser le robot, la première section est donc destinée à présenter ces cartes. Pour le lecteur désirant en savoir plus, l'algorithme EKF SLAM et deux algorithmes de recherche de chemin sont présentés. La section SLAM décrit comment le robot peut simultanément construire et se localiser sur une carte. Les algorithmes de recherche de chemin permettent au robot d'aller d'un point de départ jusqu'à un point final sans percuter d'obstacles. Dans cette section l'algorithme A star et Dijkstra sont présentés, car  les implémentations de ces deux algorithmes sont présentes dans la librairie Lejos et elles sont utilisées dans la partie pratique de ce mémoire. 
 
 
 \chapter{Les cartes}
-Les cartes de l'environnement du robot sont des éléments importants dans ce mémoire. Ces cartes peuvent être générées dynamiquement ou au préalable avant de les passer en paramètre au robot. Elles permettent de se localiser ou bien de trouver un meilleur chemin entre un point de départ et un point d'arrivée. Il y a plusieurs types de cartes ayant chacune leurs caractéristiques. Les sections suivantes sont destinées à décrire les cartes les plus répandues qui sont les grilles d'occupation et les cartes composées de repère.     
+
+Les cartes de l'environnement du robot sont des éléments importants dans ce mémoire. Ces cartes peuvent être générées dynamiquement ou au préalable avant de les passer en paramètre au robot. Elles permettent de se localiser ou bien de trouver un plus court chemin entre un point de départ et un point d'arrivée. Il y a plusieurs types de cartes ayant chacune leurs caractéristiques. Les sections suivantes sont destinées à décrire les cartes les plus répandues qui sont les grilles d'occupation et les cartes composées de repères.     
 \section{Carte composée de repères  } 
-Cette carte est définie à l'aide d'une liste ou d'une sous-liste des objets composant l'environnement du robot. Cette liste comporte les éléments importants de l'environnement, qui sont des repères pour le robot. Elle peut également contenir la liste des murs de l'environnement et les meubles.  Formellement la carte $m$ contient une liste de repère et est dite «feature-based». Elle est défini comme suit :
+\label{section:carteRepères}
+Cette carte est définie à l'aide d'une liste ou d'une sous-liste d'objets composant l'environnement du robot. Cette liste comporte les objets importants de l'environnement, qui sont des repères pour le robot. Elle peut par exemple contenir la liste des murs de l'environnement et les meubles. Formellement, la carte $m$ contient une liste de repères et est dite «feature-based». Elle est définie comme suit :
 $$m = \{ m_1,m_2,...,m_N \}$$
-où $N$  représente le nombre de repère dans l'environnement. À chaque repère de la carte correspondent ses coordonnées dans l'environnement. Cette représentations permet de modifier et d'accéder facilement aux données associées à un repère. Il est donc facile de modifier la positions des éléments dynamiques de l'environnement comme des personnes ou objets mobile au cours du temps. La figure~\ref{landmark} représente le parcours d'un drone qui se déplace dans un parc et où les objets cartographiés correspondent à la cime des arbres du parc. Il est clair dans cet exemple que la carte ne contient pas tout les objets du parc, mais bien un sous-ensemble des points de repère les plus importants. Ce technique permet donc de cartographier des environnements de grande taille en ne se préoccupant des éléments considérés comme importants. Une discussion sur l'extraction de repère à l'aide des capteurs et spécifiquement à l'aide d'une caméra est faite dans la section~\ref{sec:Analyse d'images}. 
+où $N$  représente le nombre de repères dans l'environnement. À chaque repère de la carte correspondent ses coordonnées dans l'environnement. Cette représentation permet facilement de modifier les données associées aux repères et d'y accéder. Il est donc facile de modifier la position des éléments dynamiques de l'environnement comme des personnes ou objets mobiles au cours du temps. La figure~\ref{landmark} représente le parcours d'un drone qui se déplace dans un parc et où les objets cartographiés correspondent à la cime des arbres du parc. Il est clair dans cet exemple que la carte ne contient pas tous les objets du parc, mais bien un sous-ensemble des points de repère les plus importants. Ce technique permet donc de cartographier des environnements de grande taille en se préoccupant uniquement des éléments considérés comme importants. Une discussion sur l'extraction de repères à l'aide des capteurs et spécifiquement à l'aide d'une caméra est faite dans la section~\ref{sec:Analyse d'images}. 
 
 \begin{figure}
 \begin{center}
@@ -21,8 +23,8 @@ où $N$  représente le nombre de repère dans l'environnement. À chaque repère de 
 \section{La grille d'occupation} 
 Les cartes de type grilles d'occupation découpent l'environnement du robot en un ensemble de parcelles de même taille. Cette carte $m$ de type «location-based» est notée comme suit :  
 $$  m = \{m_{1,1},m_{1,2}, ...,m_{1,Y}, ... ,m_{2,1},...,  m_{X,Y}\}$$
-où $X,Y$ représentent respectivement la largeur et la hauteur maximal de l'environnement cartographié.
- À chaque parcelle une valeur est associée. Les valeurs peuvent être binaires et définir si une parcelle est occupée ou non, ou bien peuvent être une variable qui définit la probabilité d'avoir une parcelle vide ou occupée. Dans le second cas, un seuil qui définit si la parcelle est vide et un seuil qui définit si la parcelle est occupée doivent être définis pour pouvoir utiliser la carte.Ce type de carte à l'avantage de définir la présence d'un objet, mais également l'absence d'objet ce qui n'est pas le cas des cartes composé de repères. La figure ~\ref{GridMap2} correspond à la cartographie du campus de Stanford à l'aide d'une carte d'occupation. La carte est générée dynamiquement à l'aide d'un capteur de distance infrarouge qui permet de définir les parcelles de la carte qui sont vides ou occupées. Le problème principal de ce type de grille est que leur efficacité est fortement liée à la taille de la découpe. Plus la découpe est importante, et plus cette grille fournie des informations précises, mais à contrario plus les performances de mises à jour et de lecteur sont important. Il est donc important de bien définir une découpe optimale. Cette découpe optimale est bien entendu fonction de la puissance de calcul, la précision voulue et de la taille de l'environnement.   
+où $X,Y$ représentent respectivement la largeur et la hauteur maximales de l'environnement cartographié.
+ À chaque parcelle une valeur est associée. Les valeurs peuvent être binaires et définir si une parcelle est occupée ou non, ou bien peuvent être une variable qui définit la probabilité d'avoir une parcelle vide ou occupée. Dans le second cas, un seuil qui définit si la parcelle est vide et un seuil qui définit si la parcelle est occupée doivent être définis pour pouvoir utiliser la carte. Ce type de carte à l'avantage de définir la présence d'un objet, mais également l'absence d'objet ce qui n'est pas le cas des cartes composées de repères. La figure ~\ref{GridMap2} correspond à la cartographie du campus de Stanford à l'aide d'une carte d'occupation. La carte est générée dynamiquement à l'aide d'un capteur de distance infrarouge qui permet de définir les parcelles de la carte qui sont vides ou occupées. Le problème principal de ce type de cartes est que leur efficacité est fortement liée à la taille de la découpe. Si la découpe est importante, cette grille fournit des informations précises. À contrario, les temps de mises à jour et de lectures sont importants. Il est donc important de bien définir une découpe optimale. Cette découpe optimale est bien entendu fonction de la puissance de calcul, de la précision voulue et de la taille de l'environnement.   
 
 \begin{figure}
 \begin{center}
@@ -43,19 +45,18 @@ où $X,Y$ représentent respectivement la largeur et la hauteur maximal de l'envir
 \subsection{Explication du problème}
 Le problème de localisation d'un robot mobile consiste à déterminer sa position à un instant donné sur une carte donnée. Pour atteindre cet objectif, le robot a à sa disposition les mouvements qu'il a réalisés, des mesures provenant de ses capteurs ainsi qu'une carte de son environnement. 
 
-Cette situation peut facilement être comparée à un promeneur cherchant sa position dans la nature avec une carte topographique. Cette personne n'a à sa disposition que les observations qu'elle peut réaliser (sans l'aide d'instrument de localisation comme un GPS). Elle peut se localiser à l'aide des montagnes qui sont des points de repère intéressants. Elle peut également essayer de trouver des ressemblances avec le chemin qu'elle parcourt et ce qu'elle peut observer sur la carte. Cependant, il est difficile d'estimer exactement la distance qui sépare cette personne de la montagne. La distance parcourue par cette personne entre deux points est également difficile à estimer sans erreur.  Toutes ces informations sont donc approximatives.
-Malgré ces erreurs d'approximations, grâce à la quantité d'informations accumulées durant son parcours cette personne a de fortes chances d'être de plus en plus certaine de sa position. En effet, en début de parcours, cette personne peut supposer être à un ensemble d'endroits différents à la suite d'un manque d'informations en sa possession. Par la suite grâce aux nouvelles informations elle peut procéder par élimination pour déterminer sa position.
+Cette situation peut facilement être comparée à un promeneur cherchant sa position dans la nature avec une carte topographique. Cette personne n'a à sa disposition que les observations qu'elle peut réaliser (sans l'aide d'instruments de localisation comme un GPS). Elle peut se localiser à l'aide des montagnes qui sont des points de repère intéressants. Elle peut également essayer de trouver des ressemblances avec le chemin qu'elle parcourt et ce qu'elle peut observer sur la carte. Cependant, il est difficile d'estimer exactement la distance qui sépare cette personne de la montagne. La distance parcourue par cette personne entre deux points est également difficile à estimer sans erreurs. Toutes ces informations sont donc approximatives. Malgré ces erreurs d'approximation, grâce à la quantité d'informations accumulées durant son parcours cette personne a de fortes chances d'être de plus en plus certaine de sa position. En effet, en début de parcours, cette personne peut supposer être à un ensemble d'endroits différents à la suite d'un manque d'informations en sa possession. Par la suite grâce aux nouvelles informations elle peut procéder par élimination pour déterminer sa position.
 
-Il s'avère que les robots doivent faire face aux mêmes types de problèmes pour se localiser. Grâce à l'odométrie, il est possible de déterminer les mouvements du robot en fonction de la rotation de chacun des moteurs du robot. À l'aide de capteurs tels que les capteurs infrarouges, il est possible de déterminer la distance entre la position du robot et un objet. Cependant comme pour le promeneur ces informations sont entachées d'erreurs de précisions. De plus, dans le cas des capteurs de distance infrarouges ou ultrasoniques, les ondes peuvent être réfléchies de façon inattendue selon la forme et la matière de la surface de l'objet réfléchissant l'onde. Il s'avère que chacun des capteurs possède des problèmes spécifiques aux technologies qu'ils utilisent. Une solution naïve serait de vouloir acheter des détecteurs et des moteurs toujours plus précis. Cependant, le cout des capteurs plus précis est plus important. De plus, des erreurs peuvent être impossibles à gérer à l'aide de matériel plus précis. En effet, il peut arriver que les roues du robot n'adhèrent pas parfaitement à la route. Ce qui entraine le glissement des roues et donc bien que le robot reste immobile, les moteurs enregistreront un mouvement. Si le robot évolue dans un monde dynamique il peut arriver qu'un personne, ou autre objet passe devant un capteur or cet élément n'est pas représentée sur la carte. Ce qui pourrait entrainer l'assimilation de cet élément à un autre élément de la carte. Un autre élément d'erreur lié à la carte est sa précision. La carte fournie au robot n'est pas d'une précision infinie. Les éléments cartographiés peuvent se retrouver légèrement à côté de la position définie sur la carte. Les capteurs ont également des limitations physiques, il est par exemple impossible pour une caméra de voir à travers les murs, ce qui ne donne au robot qu'une vue partielle de l'environnement dans lequel il évolue. Finalement, une erreur spécifique aux robots est le kidnapping. Ce qui correspond à l'arrêt du robot, suivi d'un déplacement du robot. Une fois celui-ci remis en marche, il n'a pas conscience qu'il a été changé de place.
+Il s'avère que les robots doivent faire face aux mêmes types de problèmes pour se localiser. Grâce à l'odométrie, il est possible de déterminer les mouvements du robot en fonction de la rotation de chacun des moteurs du robot. À l'aide de capteurs tels que les capteurs infrarouges, il est possible de déterminer la distance entre la position du robot et un objet. Cependant comme pour le promeneur ces informations sont entachées d'erreurs de précision. De plus, dans le cas des capteurs de distance infrarouges ou ultrasoniques, les ondes peuvent être réfléchies de façon inattendue selon la forme et la matière de la surface de l'objet réfléchissant l'onde. Il s'avère que chacun des capteurs possède des problèmes spécifiques aux technologies qu'ils utilisent. Une solution naïve serait de vouloir acheter des détecteurs et des moteurs toujours plus précis. Cependant, le cout des capteurs plus précis est plus important. De plus, des erreurs peuvent être impossibles à gérer à l'aide de matériel plus précis. En effet, il peut arriver que les roues du robot n'adhèrent pas parfaitement à la route. Ce qui entraine le glissement des roues et donc bien que le robot reste immobile, les moteurs enregistreront un mouvement. Si le robot évolue dans un monde dynamique il peut arriver qu'une personne, ou un autre objet passe devant un capteur or cet élément n'est pas représenté sur la carte. Ce qui pourrait entrainer l'assimilation de cet élément à un autre élément de la carte. Un autre élément d'erreur lié à la carte est sa précision. La carte fournie au robot n'est pas d'une précision infinie. Les éléments cartographiés peuvent se retrouver légèrement à côté de la position définie sur la carte. Les capteurs ont également des limitations physiques, il est par exemple impossible pour une caméra de voir à travers les murs, ce qui ne donne au robot qu'une vue partielle de l'environnement dans lequel il évolue. Finalement, une erreur spécifique aux robots est le kidnapping. Ce qui correspond à l'arrêt du robot, suivi d'un déplacement du robot. Une fois celui-ci remis en marche, il n'a pas conscience qu'il a été changé de place.
 
-L'ensemble des problèmes et contraintes présentées met en évidence qu'il n'est pas possible d'utiliser les données des capteurs et moteurs sans une analyse et un traitement préalable. Il pourrait être catastrophique de vouloir intégrer une valeur fortement entachée d'erreur. Cette seule valeur pourrait conduire à définir une localisation complètement farfelue d'un robot et ceci avec les risques qui en découlent. Les techniques de localisation probabiliste qui sont présentés dans ce mémoire permettent de pallier à ces valeurs erronées. Les sections suivantes discutent des solutions apportées aux différents problèmes discutés. 
+L'ensemble des problèmes et contraintes présentés met en évidence qu'il n'est pas possible d'utiliser les données des capteurs et moteurs sans une analyse et un traitement préalable. Il pourrait être catastrophique de vouloir intégrer une valeur fortement entachée d'erreurs. Cette seule valeur pourrait conduire à définir une localisation d'un robot complètement farfelue et ceci avec les risques qui en découlent. Les techniques de localisation probabiliste qui sont présentées dans ce mémoire permettent de pallier ces valeurs erronées. Les sections suivantes discutent des solutions apportées aux différents problèmes discutés. 
 
 
 
 \subsection{Modèle de mouvement et d'observation}
 
 L'objectif de la localisation d'un robot est de définir sur une carte la position du robot à un instant donné. Cette position est dénotée par le vecteur $x_t$. 
-Dans la suite de ce mémoire, la position du robot est définie par ses coordonnées dans un espace à deux dimensions ainsi que par son orientation. Les algorithmes présentés ne se limitent pas à cette situation et peuvent être utilisés pour un espace à un nombre de dimensions supérieures. L'état des bras des robots industriels~\cite{osha.gov} peut également être représenté à l'aide de l'angle de chaque articulation du bras. Toutefois, les principes sont plus simples à comprendre dans cette situation et cette situation est souvent suffisante pour les robots mobiles. Formellement, la position d'un robot à l'instant $t$ dans un espace à deux dimensions peut-être définit par le vecteur :
+Dans la suite de ce mémoire, la position du robot est définie par ses coordonnées dans un espace à deux dimensions ainsi que par son orientation. Les algorithmes présentés ne se limitent pas à cette situation et peuvent être utilisés pour un espace à un nombre de dimensions supérieures. L'état des bras des robots industriels~\cite{osha.gov} peut également être représenté à l'aide de l'angle de chaque articulation du bras. Toutefois, les principes sont plus simples à comprendre dans cette situation et cette situation est souvent suffisante pour les robots mobiles. Formellement, la position d'un robot à l'instant $t$ dans un espace à deux dimensions peut-être définie par le vecteur :
 $$ x_t = \begin{pmatrix} x \\ y \\ \theta \end{pmatrix}$$
 
 où $x, y$ correspondent aux coordonnées dans l'espace à deux dimensions et $\theta$ correspond à l'orientation du robot (voir ~\ref{PR2D}). 
@@ -71,10 +72,12 @@ où $x, y$ correspondent aux coordonnées dans l'espace à deux dimensions et $\the
 
 \end{figure}
 
-Pour déterminer la position du robot dans le temps, il faut prendre en considération les contrôles du robot (notés : $u_t$) ainsi que les observations effectuées par le robot (notées : $z_t$). Les algorithmes qui seront présentés par suite suivent l'hypothèse de Markov. C'est-à-dire que l'état $x_{t}$ ne dépend que de l'état $x_{t-1}$ ainsi que des contrôles $u_{t}$ et des observations courantes $z_{t}$(voir figure ~\ref{HM}). 
-
-
-\begin{figure}
+Pour déterminer la position du robot dans le temps, il faut prendre en considération les contrôles du robot (notés : $u_t$) ainsi que les observations effectuées par le robot (notées : $z_t$). Les algorithmes qui seront présentés par la suite suivent l'hypothèse de Markov. C'est-à-dire que l'état $x_{t}$ ne dépend que de l'état $x_{t-1}$ ainsi que des contrôles $u_{t}$ et des observations courantes $z_{t}$(voir figure ~\ref{HM}). Les noeuds grisés correspondent aux informations connues et les noeuds blancs aux informations inférées à l'aide des informations connues. Formellement, les contrôles peuvent être définis par le vecteur suivant :
+$$u_t =  \begin{pmatrix} d_t \\ \gamma_t \end{pmatrix} $$
+où $d_t$ correspond à la distance parcourue et $\gamma_t$ correspond à l'angle de rotation du robot dans l'intervalle de temps séparant deux contrôles. L'odométrie permet de déterminer les commandes $u_t$. Tandis que les valeurs de $u_t$ permettent de définir itérativement les nouvelles positions à l'aide du modèle de mouvement suivant : 
+$$x_{t}= \begin{pmatrix} x_{t-1}+ d_t \cos (\theta_{t-1} + \gamma_t)\\ y_{t-1} + d_t \sin (\theta_{t-1} + \gamma_t)\\ \theta_{t-1} + \gamma_t \end{pmatrix}$$
+ 
+ \begin{figure}
 \begin{center}
 \includegraphics[scale=0.7]{./../img/HypotheseMarkov.png}
 \caption{Hypothèse de Markov}
@@ -83,25 +86,28 @@ Pour déterminer la position du robot dans le temps, il faut prendre en considéra
 \end{center}
 \end{figure}
 
-Formellement, les contrôles peuvent être définis par le vecteur suivant :
-$$u_t =  \begin{pmatrix} d_t \\ \gamma_t \end{pmatrix} $$
-où $d_t$ correspond à la distance parcourue et $\gamma_t$ correspond à l'angle de rotation du robot. L'odométrie permet de déterminer les commandes $u_t$. Tandis que les valeurs de $u_t$ permettent de définir itérativement les nouvelles positions à l'aide du modèle de mouvement suivante : 
-$$x_{t}= \begin{pmatrix} x_{t-1}+ d_t \cos (\theta_{t-1} + \gamma_t)\\ y_{t-1} + d_t \sin (\theta_{t-1} + \gamma_t)\\ \theta_{t-1} + \gamma_t \end{pmatrix}$$
-
 
 Les observations effectuées par le robot peuvent être définies par le vecteur suivant :
-$$ z_t = \begin{pmatrix} d_t^z \\ \rho_t \end{pmatrix}$$
-où $d_t^z$ correspond à la distance entre le robot et l'élément détecté et $\rho_t$ correspond à l'angle formé entre l'orientation du robot et la position de l'élément. 
+$$ z_t = \begin{pmatrix} d_t^z \\ \rho_t^z \end{pmatrix}$$
+où $d_t^z$ correspond à la distance entre le robot et l'objet observé et $\rho_t^z$ correspond à l'angle formé entre l'orientation du robot et la position de l'objet. Cet objet observé est noté $j$. Cette mesure de terrain doit être comparée aux informations sur l'objet $j$ contenues dans la carte à la disposition du robot. La formule suivante donne à l'aide de la carte, la distance $d^m$ et l'angle $p^m$ entre la position du robot et l'objet $j$. (Remarque : Lorsque l'on considère qu'il n'y a pas d'erreurs de mesure, les valeurs de $\hat{z_t}$ sont égales à celles de  $z_t$ ) 
+
+$$ \hat{z_t}=\begin{pmatrix}   d^m_t  \\ \rho^m_t        \end{pmatrix} = 
+\begin{pmatrix}
+\sqrt{(m_{j,x}-x_t)^2 + (m_{j,y}-y_t)^2}\\
+atan2(m_{j,y_t}-y, m_{j,x}-x_t )- \theta_t
+\end{pmatrix} 
+$$
+
+où $m_{j,x}, m_{j,y} $ correspondent aux coordonnées de l'objet scanné $j$. Ces coordonnées sont stockées dans la carte. $x_t,y_t, \theta_t$ correspondent aux coordonnées de la position et l'orientation du robot au temps $t$ de l'observation.
 
 
 
-Modèle d'observation
 
 
 
 
 
-Ces équations ne sont vraies que si les valeurs retournées par les moteurs et capteurs étaient 100 \% juste, ce qui n'est évidemment pas le cas. En effet, ces données sont sujettes à des erreurs de mesures. Il est intéressant de remarquer que si l'odométrie n'était pas sujette à des erreurs de mesures, il ne serait pas utile d'équiper ses robots de capteurs pour les localiser, l'odométrie serait suffisante. Afin de prendre en compte les erreurs, nous allons redéfinir notre modéle de mouvement. Une erreur de rotation initial ainsi qu'une erreur sur la distance est ajouté à chaque contrôle $u_t$. Pour celà $\gamma$ et $d$ sont redéfini par $\hat{\gamma} $ et $\hat{d}$ à l'aide des formules suivantes : 
+Ces équations ne sont vraies que si les valeurs retournées par les moteurs et capteurs étaient justes à 100 \%, ce qui n'est évidemment pas le cas. En effet, ces données sont sujettes à des erreurs de mesure. Il est intéressant de remarquer que si l'odométrie n'était pas sujette à des erreurs de mesure, il ne serait pas utile d'équiper ces robots de capteurs pour les localiser, l'odométrie serait suffisante. Afin de prendre en compte les erreurs, nous allons redéfinir notre modèle de mouvement et notre modèle d'observation. Une erreur de rotation initiale ainsi qu'une erreur sur la distance sont ajoutées à chaque contrôle $u_t$. Pour cela $\gamma$ et $d$ sont redéfinis par $\hat{\gamma} $ et $\hat{d}$ à l'aide des formules suivantes : 
 
 $$
 \hat{\gamma} = \gamma - \epsilon_{\alpha_1 \gamma^2 + \alpha_2 d^2 }  
@@ -111,20 +117,47 @@ $$
 \hat{d} = d - \epsilon_{\alpha_3 d^2  + \alpha_4 \gamma^2 } 
 $$
 
-où $\alpha_1,\alpha_2,\alpha_3,\alpha_3, $ sont des paramètres à déterminer et sont spécifique à chaque robot et $\epsilon_{b^2}$ correspond à une gaussienne de moyenne nulle et de variance $b^2$. Cette formule montre que plus la distance $d$ et l'angle $\gamma$ sont importants et plus l'erreur risque d'être grande. Ce qui correspond bien à la réalité.   $\alpha_2d^2$ et $\alpha_4 \gamma^2$ correspondent aux erreurs où une rotation est considérée par une translation et inversement. À l'aide de ces deux formules, le modèle de mouvement auquel on a ajouté les erreurs de mesures devient donc : 
+où $\alpha_1,\alpha_2,\alpha_3,\alpha_3, $ sont des paramètres à déterminer et sont spécifiques à chaque robot et $\epsilon_{b^2}$ correspond à une gaussienne de moyenne nulle et de variance $b^2$. Cette formule montre que plus la distance $d$ et l'angle $\gamma$ sont importants et plus l'erreur risque d'être grande. Ce qui correspond bien à la réalité.   $\alpha_2d^2$ et $\alpha_4 \gamma^2$ correspondent aux erreurs où une rotation est considérée par une translation et inversement. À l'aide de ces deux formules, le modèle de mouvement auquel on a ajouté les erreurs de mesure devient donc : 
 
 $$x_{t}= \begin{pmatrix} x_{t-1} + \hat{d}_t  \cos (\theta_{t-1} + \hat{\gamma}_t) \\ y_{t-1} + \hat{d}_t \sin (\theta_{t-1} + \hat{\gamma}_t)\\ \theta_{t-1} + \hat{\gamma}_t  \end{pmatrix}$$
 
+Dans le modèle d'observation, une erreur gaussienne est ajoutée sur la mesure de la distance $d^m$ et sur l'angle $\rho^m$ entre le robot et l'objet $j$.
+$$ \hat{z_t} = \begin{pmatrix}   d^m_t  \\ \rho^m_t        \end{pmatrix} = 
+\begin{pmatrix}
+\sqrt{(m_{j,x}-x_t)^2 + (m_{j,y}-y_t)^2}\\
+atan2(m_{j,y_t}-y, m_{j,x}-x_t )- \theta_t
+\end{pmatrix} 
++ 
+\begin{pmatrix}
+\epsilon_{\sigma_{d}^2} \\
+\epsilon_{\sigma_{\rho}^2}
+\\
+\end{pmatrix}
+$$
+où $\epsilon_{\sigma_{d}^2} ,\epsilon_{\sigma_{\rho}^2}$ sont des gaussiennes de moyenne égale à zéro et respectivement de variance $\sigma^2_d, \sigma^2_\rho $ . La section~\ref{algoLoc} décrit comment les mesures de terrain $z_t$ et les informations disponibles dans la carte  sont utilisées pour permettre au robot d'ajuster sa position. Elle décrit également comment définir que l'objet scanné sur le terrain correspond à l'objet $j$ de la carte.
 
 Il est important de remarquer que le modèle de mouvement et le modèle  d'observation présentés sont des exemples et doivent évidemment être adaptés aux différents robots. 
 
 
 
 \subsection{Algorithme de localisation de Markov}
-Dans ce mémoire les algorithmes développés sont des algorithmes de localisation probabiliste. L'approche probabiliste permet d'intégrer les erreurs de précision des capteurs dans l'algorithme et leur objectif est de déterminer la fonction de densité de probabilité du vecteur aléatoire associée X. 
+Dans ce mémoire les algorithmes développés sont des algorithmes de localisation probabiliste. L'approche probabiliste permet d'intégrer dans l'algorithme les erreurs de précision des capteurs et des moteurs. Leur objectif est de déterminer la fonction de densité de probabilité du vecteur aléatoire $X$ associé. 
 $$E \rightarrow [0;1]: x \mapsto p(X = x)$$
 
- L'algorithme ~\ref{alg:Markovlocalisation} qui est décrit en pseudocode correspond à l'algorithme de localisation de Markov qui est à la base de tout les algorithmes de localisation qui sont présentés dans ce mémoire. Il décrit la mise à jour de la position $x_{t-1}$ vers l'état $x_t$. Il prend en paramètre la croyance de la position précédente (c'est-à-dire la fonction de densité de probabilité du vecteur  de position x), le contrôle courant, les observations courantes ainsi que la carte dans laquelle le robot évolue. Il est constitué d'une boucle principale, qui itère sur toutes les valeurs possibles pour la position $x_t$. Cette boucle contient deux étapes importantes. La première étape se nomme «la prédiction» et consiste à calculer une croyance temporaire $\overline{bel}$ de la position du robot à l'aide de $u_t$ et de la croyance de l'étape précédente $bel(x_{t-1})$. La seconde étape correspond à la mise à jour de la croyance $bel(x_t)$ à l'aide des mesures $z_t$ et de la croyance $\overline{bel}(x_t)$ calculée dans l'étape de prédiction.
+ L'algorithme ~\ref{alg:Markovlocalisation} qui est décrit en pseudocode correspond à l'algorithme de localisation de Markov qui est à la base de tous les algorithmes de localisation qui sont présentés dans ce mémoire. Il est dérivé du filtre bayésien~\cite{bessiere:hal-00905797} qui est lui-même basé sur la loi bayésienne qui est la suivante.
+ $$
+ p(x|y)=\frac{p(y|x)p(x)}{p(y)}
+ $$
+
+Le théorème de la probabilité totale est également important dans l'algorithme de Markov. Dans le cas discret, il est défini comme suit :  
+ $$
+ p(y)= \sum \limits_{x'} p(y|x')p(x')
+ $$
+ dans le cas continu, il devient :
+ $$
+ p(y)= \int p(y|x')p(x')dx'
+ $$ 
+ L'algorithme de Markov décrit donc la mise à jour de la position $x_{t-1}$ vers la position $x_t$. Il prend en paramètre la croyance de la position précédente (c'est-à-dire la fonction de densité de probabilité du vecteur  de position x au temps $t-1$), le contrôle courant, les observations courantes ainsi que la carte dans laquelle le robot évolue. Il est constitué d'une boucle principale, qui itère sur toutes les valeurs possibles pour la position $x_t$. Ce qui permet de déterminer la probabilité associée à chaque position que pourrait prendre le robot. Pour cela, cette boucle contient deux étapes importantes. La première étape se nomme «la prédiction» et consiste à calculer une croyance temporaire $\overline{bel}$ de la position du robot à l'aide de $u_t$ et de la croyance de l'étape précédente $bel(x_{t-1})$. Elle se base sur le théorème de la probabilité totale. La seconde étape correspond à la mise à jour de la croyance $bel(x_t)$ à l'aide des mesures $z_t$ et de la croyance $\overline{bel}(x_t)$ calculée dans l'étape de prédiction. Cette étape se base sur la loi bayésienne dans laquelle $p(z_t)$ ne dépend pas de $x_t$  et est toujours égale pour toutes valeurs de $p(x_t| z_t,x_t,m)$.  Pour cette raison le $\eta $ correspond à un normalisateur qui permet de garder une loi de probabilité et il est égal à $p(z_t)^{-1}$.
 
 \begin{algorithm}
 \caption{ Localisation de Markov  }\label{alg:Markovlocalisation}
@@ -151,16 +184,36 @@ La figure ~\ref{ILM} illustre une situation où l'algorithme de Markov est appliq
 \end{figure}
 
 
-La prédictibilité de l'environnement est un élément important dans le choix d'appliquer ou non des algorithmes probabilistes. Dans le cas d'un environnement bien structuré comme une chaine de montage, le degré d'imprédictibilité est bien moins important que lorsque le robot évolue en ville ou dans une maison. En effet, l'environnement d'une chaine de montage est beaucoup moins sujet à des éléments imprévus comme des personnes ou objets inconnus venant s'ajouter à son environnement de travail. Par la nature imprédictible des êtres vivants, l'imprédictibilité de l'environnement augmente fortement lorsque le robot évolue dans un environnement en présence d'être vivant. Les algorithmes probabilistes permettent de pallier à l'imprédictibilité d'un environnement. Lorsque l'environnement est forte imprédictible, il est souvent plus prudent d'augmenter le nombre de capteurs. Des capteurs de proximité d'un robot de chaine de montage peuvent être ajoutés pour éviter un accident si une personne rentre dans le champ de mouvement du robot. Cependant, dans le cas des robots de chaines de montage la vitesse d'exécution du robot est très importante pour la productivité de l'entreprise. Il est donc préférable de ne pas diminuer cette vitesse avec des vérifications de sécurités et plutôt d'interdire l'accès aux alentours de la zone de travail du robot.   
+La prédictibilité de l'environnement est un élément important dans le choix d'appliquer ou non des algorithmes probabilistes. Dans le cas d'un environnement bien structuré comme une chaine de montage, le degré d'imprédictibilité est bien moins important que lorsque le robot évolue en ville ou dans une maison. En effet, l'environnement d'une chaine de montage est beaucoup moins sujet à des éléments imprévus comme des personnes ou objets inconnus venant s'ajouter à son environnement de travail. Par la nature imprédictible des êtres vivants, l'imprédictibilité de l'environnement augmente fortement lorsque le robot évolue dans un environnement en présence d'êtres vivants. Les algorithmes probabilistes permettent de pallier à l'imprédictibilité d'un environnement. Lorsque l'environnement est fortement imprédictible, il est souvent plus prudent d'augmenter le nombre de capteurs. Des capteurs de proximité d'un robot de chaine de montage peuvent être ajoutés pour éviter un accident si une personne rentre dans le champ de mouvement du robot. Cependant, dans le cas des robots de chaines de montage, la vitesse d'exécution du robot est très importante pour la productivité de l'entreprise. Il est donc préférable de ne pas diminuer cette vitesse avec des vérifications de sécurité et plutôt d'interdire l'accès aux alentours de la zone de travail du robot.   
 
-Les algorithmes probabilistes souffrent de deux défauts importants. La première est la complexité en temps de calcul de l'algorithme qui augmente. En effet, dans les algorithmes probabilistes on considère toute la fonction de densité de probabilité lorsque les algorithmes classiques (non probabiliste) ne considèrent qu'un élément. La deuxième est le besoin d'utiliser des approximations de la densité de probabilité exacte. Considérer la fonction de densité exacte devient vite impossible à calculer et est donc indispensable d'utiliser des approximations comme des Gausiennes ou un nombre restreint des éléments de la fonction de densité. Dans certaines situations, ces représentations peuvent être éloignées de la réalité. Cependant, l'augmentation de la puissance de calcul des processeurs ainsi que les recherches d'algorithmes plus efficients permettent de grandes évolutions dans le domaine. Toutefois, ces deux points restent encore problématiques. Ces deux points sont donc discutés dans la présentation des algorithmes de localisation suivants.   
+Les algorithmes probabilistes souffrent de deux défauts importants. La première est la complexité en temps de calcul de l'algorithme qui augmente. En effet, dans les algorithmes probabilistes on considère toute la fonction de densité de probabilité lorsque les algorithmes classiques (non probabilistes) ne considèrent qu'un élément. La deuxième est le besoin d'utiliser des approximations de la densité de probabilité exacte. Considérer la fonction de densité exacte devient vite impossible à calculer et est donc indispensable d'utiliser des approximations comme des gaussiennes ou un nombre restreint des éléments de la fonction de densité. Dans certaines situations, ces représentations peuvent être éloignées de la réalité. Cependant, l'augmentation de la puissance de calcul des processeurs ainsi que les recherches d'algorithmes plus efficients permettent de grandes évolutions dans le domaine. Toutefois, ces deux points restent encore problématiques. Ces deux points sont donc discutés dans la présentation des algorithmes de localisation suivants.   
 
 
 \section{Algorithmes de résolution du problème de localisation}
-L'algorithme de Markov permet de donner l'idée générale des algorithmes de localisation. Cependant pour pouvoir implémenter concrètement un algorithme de localisation un certain nombre de questions sont encore ouvertes. La plus importante correspond à la représentation de la fonction de probabilité. Deux grandes approches existent. La première définit une fonction de probabilité à l'aide de ses paramètres. Et la seconde représente la probabilité à l'aide d'un certain nombre d'éléments discrets. Les sections suivantes discutent de ces deux approches. Elles présentent les algorithmes EKF et MCL qui font partie des algorithmes de localisation les plus connus et qui présentent de bons résultats en pratique. 
+\label{algoLoc}
+L'algorithme de Markov permet de donner l'idée générale des algorithmes de localisation. Cependant pour pouvoir implémenter concrètement un algorithme de localisation un certain nombre de questions sont encore ouvertes. La plus importante correspond à la représentation de la fonction de probabilité. Deux grandes approches existent. La première définit une loi de probabilité à l'aide de ses paramètres. Et la seconde représente la probabilité à l'aide d'un certain nombre d'éléments discrets. Les sections suivantes discutent de ces deux approches. Elles présentent les algorithmes EKF et MCL qui font partie des algorithmes de localisation les plus connus et qui présentent de bons résultats en pratique. 
 
-\subsection{ Algorithme paramétrique(EKF)}
-Les algorithmes paramétriques permettent de représenter les croyances de la position d'un robot à l'aide de lois de probabilité. Les concepts mathématiques de l'algorithme de Kalman ont été développés dans les années 60 \cite{Kalman61newresults}. Dans le cas de l'algorithme Kalman Filter(KF) la loi de probabilité est une loi normale. Elle dépend donc de deux paramètres son espérance $\mu$ et son écart type $\sigma $. Cette loi normale est une loi normale multivariée lorsque le vecteur de position est composé de plusieurs éléments. On définit alors la moyenne de cette fonction multivariée comme suit  $$\mu = x_t =  \begin{pmatrix} x\\y\\ \theta  \end{pmatrix}$$ 
+\subsection{Algorithme paramétrique(EKF)}
+Les algorithmes paramétriques permettent de représenter les croyances de la position d'un robot à l'aide de lois de probabilité. Les concepts mathématiques de l'algorithme de Kalman ont été développés dans les années 60 \cite{Kalman61newresults}. L'algorithme de Kalman n'est pas uniquement utilisé dans la localisation en robotique. Il aussi par exemple utilisé dans la restauration d'image 2D~\cite{1169273}, ou bien dans la gestion de la congestion du trafic routier~\cite{TrafficFlow} .  Dans le cas de l'algorithme Kalman Filter(KF)~\ref{alg:kalmanFilter} la loi de probabilité est une loi normale. Elle dépend donc de deux paramètres, son espérance $\mu$ et son écart type $\Sigma $. Cette loi normale est une loi normale multivariée lorsque le vecteur de position est composé de plusieurs éléments.  Dans le cas de notre robot, on définit alors la moyenne de cette fonction multivariée comme suit$$\mu = x_t =  \begin{pmatrix} x\\y\\ \theta  \end{pmatrix}$$ 
+L'écart type est défini comme suit dans le cas de notre robot : 
+$$
+\Sigma = Var(\vec{x_t})= 
+\begin{pmatrix} 
+Var(x) & Cov(x,y)& Cov(x,\theta) \\ 
+Cov(y,x)& Var(y) & Cov(y,\theta) \\ 
+Cov(\theta,x) & Cov(\theta,y) & Var(\theta)\\
+\end{pmatrix}
+$$
+Cette matrice permet d'exprimer les erreurs sur la possition du robot. Les valeurs de la matrice augmentent durant le parcourt du robot et diminue lorsque le robot effectue une observation qui lui permet d'augmenter sa certitude en sa possition. Une explication détaillée de ce à quoi correspond cette matrice et comment il est possible de la représenté est donnée dans la section~\ref{sectionCovariance}.
+
+L'algorithme de Kalman  est composé des deux mêmes étapes principales que l'algorithme de Markov, la prédiction et la mise à jour. La prédiction consiste à déplacer la moyenne de la gaussienne en fonction des mouvements du robot et d'adapter l'écart type en fonction de l'erreur associé au mouvement.
+L'étape de mise a jour permet de mettre a jour la moyenne et l'écart type à l'aide des observations et des erreurs de mesures liées à l'observations. L'importance associée à l'observation est formulée à l'aide du gain de Kalman exprimé à la ligne 4 de l'algorithme. 
+
+La matrice $R_t $ et $Q_t$ correspondent respectivement à la covariance de la fonction gaussienne centré des erreur de mouvement et des erreurs d'observations. $R_t$  est  de dimensions $n \times n$ où $n$ est la taille du vecteur de position $x_t$. $Q_t$ est de dimensions $k \times n$ où $k$ est la dimension du vecteur d'obsevation $z_t$. La matrice $A_t$ et $B_t$ sont respectivement de dimensions $n \times n$ et $ n \times m $ où $m$ correspond à la dimension du vecteur de contrôle. La matrice $B$ permet d'exprimer la transformation utile pour exprimer le vecteur de contrôle dans les mêmes variable que le vecteur de position  $\mu$. De même la matrice $C $ de dimension $k \times n$ permet d'exprimer la transformation utile pour exprimer le vecteur de postion dans les mêmes variables que le vecteur d'observation. 
+
+Dans l'algorithme de Kalman l'ensemble des opérations sont effectuées sur des matrices. Les matrices manipulée devienne de grande taille lorsque la posiiton $x_t$ et donc la moyenne $\mu_t$ devient de taille importante. Rappelons que $x_t$ représente la position du robot. Dans le cas d'un robot avec plusieurs articulations, la position dans l'espace de chaque articulation est contenue dans ce vecteur. Ce qui montre que la taille de ce vecteur peut augmenter rapide. Deplus, la taille de la matrice de covariance est le carré de la taille de se vecteur de position. Il est donc important d'utiliser des librairie performante dans la manipulation de matrice pour évidé de rendre cette algorithme inutilisable. Finalement, certaine propriété de ces matrices permet de diminuer le temps de calcul. L'inversion de $(C_t \overline{\Sigma}_t C^T_t + Q_t )^{-1}$ qui est une matrice symétrique peut être réalisé à l'aide de la décompostion de Cholesky~\cite{wiki:cholesky}.
+
+En appliquant les recommandations de manipulations de matrice, l'algorithme du filtre de Kalman a une bonne complexité. $O(n^{2.4}+ k^{2.4} )$ où $k$ représente la taille du vecteur d'observation $z_t$ et $n$ la taille du vecteur de position $x_t$. Dans beaucoup d'application des algorithmes de localisation, la taille de $n$ est tendance à être supérieure à celle de $k$. La complexité est donc dominé par $O(n^{2.4})$  
 
 
 \begin{algorithm}
@@ -192,156 +245,57 @@ Les algorithmes paramétriques permettent de représenter les croyances de la posi
 \end{algorithm}
 
 
-L'algorithme Extended Kalman filter(EKF) correspond à la version non linearaire de l'algorithme du filtre de Kalman. Cette variante a été développée 
-quelques années plus tard  par la NASA\cite{Smith1962} pour faire face au fait que la plupart des systèmes physiques ne sont pas linéaires. Pour ce faire les fonctions $g$ et $h$ ont été introduites. Ces fonctions ne doivent pas obligatoirement être linéaire mais doivent être dérivables. Contrairement ou filtre de Kalman classique où les fonctions sont obligatoirement linéaire pour préserver des fonctions de répartition gausienne.
+L'algorithme Extended Kalman filter(EKF) correspond à la version non linéaraire de l'algorithme du filtre de Kalman. Cette variante a été développée 
+quelques années plus tard  par la NASA\cite{Smith1962} pour faire face au fait que la plupart des systèmes physiques ne sont pas linéaires. Pour ce faire les fonctions $g$ et $h$ ont été introduites. Ces fonctions ne doivent pas obligatoirement être linéaire mais doivent être dérivables. Contrairement ou filtre de Kalman classique où les fonctions sont obligatoirement linéaire pour préserver des fonctions de répartition gausienne. 
 
-
-
-\subsection{Algorithme non paramétrique(MCL) }
-À l'inverse des algorithmes paramétriques, les algorithmes non paramétriques ne sont pas basés sur une loi de probabilité connue dont l'algorithme arrange les paramètres pour correspondre au mieux à la croyance de la position. Dans les algorithmes non paramétriques, la croyance est représentée par nombre déterminé de positions supposées. Une probabilité est associée à ces positions supposées. Plusieurs techniques existent pour représenter ses positions supposées. 
-
-La première technique consiste à découper la carte de l'environnement en une grille où chaque élément de la grille correspond à une position supposée\cite{4621305}. Pour représenter l'orientation du robot, il faut multiplier le nombre de cases par le nombre d'angles d'orientation que peut prendre le robot (voir ~\ref{img:gridMap}).Dans cette représentation, seules trois orientations sont possibles. Ces trois orientations correspondent aux trois plans de la représentation. Comme on peut s'en rendre compte, il est très important de définir la bonne granularité de la découpe. Une découpe trop importante augmente le temps de calcul, alors qu'une grille trop peu découpée rend la localisation trop peu précise. Dans ce type de découpe, plus la carte est grande et plus le temps de calcul est important. 
-
-Dans le cas de l'algorithme de Monte Carlo localization (MCL) aussi appelé Particle filter localization \cite{bib:Rekleitis2004}  car il utilise un filtre à particule, une approche différente a été choisie. Dans cet algorithme (voir l'algorithme ~\ref{alg:MCL }) la croyance de la position est représentée par M particules(voir ~\ref{img:MCL}). Chaque particule est considérée comme une hypothèse sur la position du robot. Plus une région de la carte contient de particules et plus la probabilité que le robot s'y trouve est grande. Contrairement aux algorithmes basés sur la découpe de la carte en une grille, MCL n'implique pas un temps de calcul supplémentaire lorsque la taille de la carte augmente. Cependant, il est possible de choisir d'augmenter le nombre de particules pour augmenter la précision. 
-
-MCL souffre d'un problème important, en particulier quand $M< 50$ et que l'environnement du robot est grand. Il peut arriver que l'ensemble des particules converge vers une position erronée. Une fois cette convergence atteinte il est difficile d'en sortir. Pour pallier à ce problème, à chaque itération un certain nombre de particules sont redistribuées aléatoirement dans la carte. 
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.6]{./../img/mcl.png}
-\caption{Illustration de MCL, les traits gris correspondent aux particules et le niveau de rouge représente la probabilité associée}
-\source{\href{https://en.wikipedia.org/wiki/Monte_Carlo_localization}{Wikipedia}, Auteur : Daniel Lu }
-\end{center}
-
-\label{img:MCL}
-\end{figure}
-
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.6]{./../img/gridMap.png}
-\caption{Illustration de la carte en grille}
-\source{Probabilistic Robotics\cite{Thrun:2005:PR:1121596}}
-\end{center}
-\label{img:gridMap}
-\end{figure}
+L'algorithme ~\ref{alg:EKFLocalisation} décrit l'algorithme de Kalman appliqué à la localisation de notre robot. Le robot utilise une carte composé de repère (comme défini dans le section ~\ref{section:carteRepères} ) pour se localisé. Cette carte est passé en paramètre en plus des paramètres classique de l'algorithme de Kalman. 
 
 
 
 \begin{algorithm}
-\caption{ MCL  }\label{alg:MCL }
+\caption{ EKF  localisation  }\label{alg:EKFLocalisation}
 \begin{algorithmic}[1]
-\Procedure{MCL }{$ \mathcal{X}_{t-1}, u_t, z_t ,m $}  
-\State $ \overline{\mathcal{X}_t} \gets  \emptyset $  
-\State $ \mathcal{X}_t \gets  \emptyset $  
-
-\For {$ m = 1$ to  M }
-\State  $ x^{[m]}_t \gets sample\_motion\_model(u_t , x^{[m]}_{t-1})$
-\State $w_t^{[m]} \gets measurement\_model(z_t , x_t^{[m]},m)$
-\State $ \overline{\mathcal{X}}_t \gets \overline{\mathcal{X}}_t + \langle  x^{[m]}_t , w_t^{[m]} \rangle $
-\EndFor
-
-\For {$ m = 1$ to  M }
-\State draw i  with probability $\propto w^{[i]}_t$
-\State add $x^{[i]}_t$ to $\mathcal{X}_t$
-\EndFor
-\State \textbf{return} $ \mathcal{X}_t$
-\EndProcedure
-\end{algorithmic}
-\end{algorithm}
-
-
-\subsection{Comparaison de MCL et EKF}
-Le tableau ~\ref{MCLVSEKF} donne et compare les principales caractéristiques de l'algorithme EKF et MCL. Ce tableau comparatif permet de mettre en valeur qu'aucun algorithme n'est globalement meilleur. Ils possèdent chacun leurs qualités et défauts. Les défauts de l'un se révèlent les qualités de l'autre. Par exemple, EKF est efficient en temps et mémoire contrairement au MCL dont l'efficience dépend fortement du nombre de particules. 
-
-Cependant, MCL est plus robuste à EKF. En effet, la représentation de la fonction de probabilité à l'aide d'une loi normale permet à EKF d'être efficient. Cependant, le revers de cette efficience est qu'il est moins robuste lorsque la fonction de probabilité est fortement différente d'une loi normale. Prenons l'exemple d'un long couloir avec un grand nombre de portes et où le robot n'est pas capable de distinguer les portes. Dans cette situation MCL peut donner de meilleures performances. En effet, EKF assume que la croyance de la position est proche d'une distribution gaussienne et a donc de mauvaises performances lorsque la croyance correspond plutôt à distribution multimodale. Pour pallier à ce problème, l'algorithme classique EKF a été amélioré. Multi-hypothesis tracking (MHT)\cite{1263228} filtre permet de représenter la croyance à l'aide d'un mixte de plusieurs gaussienne et donc d'avoir un algorithme plus robuste et efficient.
-
-La localisation globale correspond à un problème de localisation où la position initiale n'est pas connue et l'incertitude est donc grande à cet instant. Il s'avère qu' EKF est plus approprié pour suivre la position d'un robot dont on connait déjà la position initiale. En effet, une représentation unimodale est généralement une bonne représentation dans un problème où il s'agit de suivre une position, mais pas dans un problème de localisation globale. La linéarisation dans EKF ne fait qu'accroitre ce problème en risquant de converger vers une mauvaise position.
-
-
-De plus, MCL permet de traiter directement dans l'algorithme des mesures brutes or EKF nécessite des repères. Il est donc possible à l'aide de MCL d'utiliser directement les valeurs de capteurs de distance entre le robot et des murs pour les comparer avec une carte représentant les murs. Ce qui n'est pas possible à l'aide de EKF qui nécessite une carte composée d'un nombre limité de repères qui permet de localiser le robot à l'aide des repères mesurés dans son environnement. Finalement, en pratique il s'avère que MCL est plus simple à implémenter qu'EKF.
-
-
-\begin{table}
-\begin{center} 
-
-\begin{tabular}{l | c | c }
-               & EKF & MCL \\
-               \hline
-Mesures & Repères & Brute \\ 
-Erreur de Mesure & Gaussienne & Toute \\
-Posterior &Gaussienne & Particules \\
-Efficience(mémoire) & ++ & + \\
-Efficience(temps)& ++ & + \\
-Facilité d'implémentation & + & ++ \\
-Résolution & ++ & + \\
-Robuste & - & ++ \\ 
-Localisation Globale & non & oui\\ 
-\hline 
-\end{tabular}
-\caption{Comparaison EKF et MCL}
-\label{MCLVSEKF} 
-\end{center}
-\end{table}
-
-
-\chapter{Simultaneous Localization And Mapping}
-Les algorithmes de type Slam (Simultaneous Localization And Mapping) sont l'étape suivante de l'indépendance des robots. En effet, dans les algorithmes de simple localisation, la carte de l'environnement doit être construite avant de la passer en paramètre aux algorithmes de localisation. Comme son nom l'indique, dans un algorithme Slam la carte est construite en parallèle avec la localisation du robot. 
-
-
-\section{EKF SLAM}
-EKF SLAM est un algorithme SLAM et comme sont nom le laisser penser est basé sur l'algorithme de localisation EKF. Il utilise également une gaussienne pour représenter son état. Cependant l'état contient à l'instant $t$ en plus de la pose du robot, la carte qui est représentées comme l'ensemble des poses des features découvert à l'instant $t$. Cet algorithme est aussi découpé en deux étapes important, l'étape de prédiction ainsi que l'état de correction. Dans l'état de prédiction la fonction de mouvement n'influence pas les valeurs de la moyenne des poses des features. Ce qui est normal car les features ne bouge par même si le robot change de position.   
-
-\begin{algorithm}
-\caption{ EKFSLAM  }\label{alg:EKFSLAM }
-\begin{algorithmic}[1]
-\Procedure{EKFSLAM }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m,c_t  $}  
-\State $ F_x \gets 
+\Procedure{EKF localisation }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m  $}  
+\State $\theta_{t-1} \gets \mu_{t-1,\theta } $
+\State $ G_t \gets 
 \begin{pmatrix}
-1&0& 0\\
-0&1&0\\
+1&0& -d_t \sin( \theta_{t-1}  + \gamma_t)\\
+0&1&d_t\cos(\theta_{t-1}  + \gamma_t)\\
 0&0&1\\
 \end{pmatrix}
 $
-
-
-\State $\overline{\mu}_t \gets \mu_{t-1} +  F^T_x
+\State $V_t \gets 
 \begin{pmatrix}
-d \cos \\
-d \sin \\
-\gamma \\
+\cos(\theta_{t-1} + \gamma_t) & -d \sin(\theta_{t-1} + \gamma_t)\\
+\sin(\theta_{t-1}  + \gamma_t)& d_t \cos(\theta_{t-1} + \gamma_t) \\
+0&1\\
+\end{pmatrix}
+$
+\State $M_t \gets 
+\begin{pmatrix}
+\sigma^2 &0\\
+0&\sigma^2 \\ 
 \end{pmatrix}
 $
 
-\State $G_t \gets I + F_x^T 
+\State $\overline{\mu}_t \gets \mu_{t-1} + 
 \begin{pmatrix}
-0,0\\
-0,0\\
-0,0\\
-\end{pmatrix}$
+d_t \cos(\theta_{t-1} + \gamma_t) \\
+d_t \sin(\theta_{t-1} + \gamma_t) \\
+ \gamma_t \\
+\end{pmatrix}
+$ \Comment{prédiction}
 
 
-\State $\overline{\Sigma}_t \gets G_t \Sigma_{t-1}G_t^T + F_x^TR_tF_x $
-
-\State $ Q_t \gets 
+\State $\overline{\Sigma}_t \gets G_t \Sigma_{t-1}G_t^T + V_tM_tV_t^T $ \Comment{prédiction}
+\State $ Q \gets 
 \begin{pmatrix}
-\sigma^2_r&0&0\\
-0&\sigma^2_r&0\\
-0&0&\sigma^2_r\\
-\end{pmatrix}$
+\sigma^2_{d^z}&0\\
+0&\sigma^2_{\rho^z}\\
+\end{pmatrix}$ 
 
 \ForAll{ observed features   {$ z^i_t \gets (d^i_t,\rho^i_t)^T $ }}
-\State $j \gets c_t^i$
-\If{landmark j never seen before}
-\State $
-\begin{pmatrix}
-\overline{\mu}_{j,x}\\
-\overline{\mu}_{j,y}\\
-\end{pmatrix}
-\gets 
-$ 
-\EndIf
- 
+\State $j\gets$ landmark observed
 \State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$
 \State $ \hat{z}^i_t \gets 
 \begin{pmatrix}
@@ -374,8 +328,215 @@ $
 \end{algorithmic}
 \end{algorithm}
 
+
+
+
+\subsection{Algorithme non paramétrique(MCL) }
+À l'inverse des algorithmes paramétriques, les algorithmes non paramétriques ne sont pas basés sur une loi de probabilité connue dont l'algorithme arrange les paramètres pour correspondre au mieux à la croyance de la position. Dans les algorithmes non paramétriques, la croyance est représentée par nombre déterminé de positions supposées. Une probabilité est associée à ces positions supposées. Plusieurs techniques existent pour représenter ses positions supposées. 
+
+La première technique consiste à découper la carte de l'environnement en une grille où chaque élément de la grille correspond à une position supposée\cite{4621305}. Pour représenter l'orientation du robot, il faut multiplier le nombre de cases par le nombre d'angles d'orientation que peut prendre le robot (voir la figure ~\ref{img:gridMap}). Dans cette représentation, seules trois orientations sont possibles. Ces trois orientations correspondent aux trois plans de la représentation. Comme on peut s'en rendre compte, il est très important de définir la bonne granularité de la découpe. Une découpe trop importante augmente le temps de calcul, alors qu'une grille trop peu découpée rend la localisation trop peu précise. Dans ce type de découpe, plus la carte est grande et plus le temps de calcul est important. 
+
+Dans le cas de l'algorithme de Monte Carlo localization (MCL) aussi appelé Particle filter localization\cite{bib:Rekleitis2004}  car il utilise un filtre à particule, une approche différente a été choisie. Dans cet algorithme (voir l'algorithme ~\ref{alg:MCL }) la croyance de la position est représentée par M particules(voir la figure ~\ref{img:MCL}). Chaque particule est considérée comme une hypothèse sur la position du robot. Les traits gris correspondent aux particules et le niveau de rouge représente la probabilité associée. Plus une région de la carte contient de particules avec une probabilité haute associée et plus la probabilité que le robot s'y trouve est grande. Contrairement aux algorithmes basés sur la découpe de la carte en une grille, MCL n'implique pas un temps de calcul supplémentaire lorsque la taille de la carte augmente. Cependant, il est possible de choisir d'augmenter le nombre de particules pour augmenter la précision. 
+
+MCL souffre d'un problème important, en particulier quand $M< 50$ et que l'environnement du robot est grand. Il peut arriver que l'ensemble des particules converge vers une position erronée. Une fois cette convergence atteinte il est difficile d'en sortir. Pour pallier à ce problème, à chaque itération un certain nombre de particules sont redistribuées aléatoirement dans la carte. 
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.6]{./../img/mcl.png}
+\caption{Illustration de MCL}
+\source{\href{https://en.wikipedia.org/wiki/Monte_Carlo_localization}{Wikipedia}, Auteur : Daniel Lu }
+\label{img:MCL}
+\end{center}
+
+
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.6]{./../img/gridMap.png}
+\caption{Illustration de la carte en grille}
+\source{Probabilistic Robotics\cite{Thrun:2005:PR:1121596}}
+\label{img:gridMap}
+\end{center}
+
+\end{figure}
+
+
+
+\begin{algorithm}
+\caption{ MCL  }\label{alg:MCL }
+\begin{algorithmic}[1]
+\Procedure{MCL }{$ \mathcal{X}_{t-1}, u_t, z_t ,m $}  
+\State $ \overline{\mathcal{X}_t} \gets  \emptyset $  
+\State $ \mathcal{X}_t \gets  \emptyset $  
+
+\For {$ m = 1$ to  M }
+\State  $ x^{[m]}_t \gets sample\_motion\_model(u_t , x^{[m]}_{t-1})$
+\State $w_t^{[m]} \gets measurement\_model(z_t , x_t^{[m]},m)$
+\State $ \overline{\mathcal{X}}_t \gets \overline{\mathcal{X}}_t + \langle  x^{[m]}_t , w_t^{[m]} \rangle $
+\EndFor
+
+\For {$ m = 1$ to  M }
+\State draw i  with probability $\propto w^{[i]}_t$
+\State add $x^{[i]}_t$ to $\mathcal{X}_t$
+\EndFor
+\State \textbf{return} $ \mathcal{X}_t$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Comparaison de MCL et EKF}
+Le tableau ~\ref{MCLVSEKF} donne et compare les principales caractéristiques de l'algorithme EKF et MCL. Ce tableau comparatif permet de mettre en valeur qu'aucun algorithme n'est globalement meilleur. Ils possèdent chacun leurs qualités et défauts. Les défauts de l'un se révèlent les qualités de l'autre. Par exemple, EKF est efficient en temps et mémoire contrairement au MCL dont l'efficience dépend fortement du nombre de particules. 
+
+Cependant, MCL est plus robuste que EKF. En effet, la représentation de la fonction de probabilité à l'aide d'une loi normale permet à EKF d'être efficient. Cependant, le revers de cette efficience est qu'il est moins robuste lorsque la fonction de probabilité est fortement différente d'une loi normale. Prenons l'exemple d'un long couloir avec un grand nombre de portes et où le robot n'est pas capable de distinguer les portes. Dans cette situation MCL peut donner de meilleures performances. En effet, EKF assume que la croyance de la position est proche d'une distribution gaussienne et a donc de mauvaises performances lorsque la croyance correspond plutôt à distribution multimodale. Pour pallier à ce problème, l'algorithme classique EKF a été amélioré. Multi-hypothesis tracking (MHT)\cite{1263228} filtre permet de représenter la croyance à l'aide d'un mixte de plusieurs gaussienne et donc d'avoir un algorithme plus robuste et efficient. Le même type de problème se présente pour la représentation de l'erreur de mesure. Dans le cas de MCL, cette erreur de mesure ne doit pas obligatoirement suivre une gaussienne contrairement à EKF. MCL permet de représenter l'erreur de mesure par une fonction quelconque ce qui permet de s'approcher plus facilement de la réalité physique.  
+
+La localisation globale correspond à un problème de localisation où la position initiale n'est pas connue et l'incertitude est donc grande à cet instant. Il s'avère qu' EKF est plus approprié pour suivre la position d'un robot dont on connait déjà la position initiale. En effet, une représentation unimodale est généralement une bonne représentation dans un problème où il s'agit de suivre une position, mais pas dans un problème de localisation globale. La linéarisation dans EKF ne fait qu'accroitre ce problème en risquant de converger vers une mauvaise position.
+
+
+De plus, MCL permet de traiter directement dans l'algorithme des mesures brutes or EKF nécessite des repères. Il est donc possible à l'aide de MCL d'utiliser directement les valeurs de capteurs de distance entre le robot et des murs pour les comparer avec une carte représentant les murs. Ce qui n'est pas possible à l'aide de EKF qui nécessite une carte composée d'un nombre limité de repères qui permet de localiser le robot à l'aide des repères mesurés dans son environnement. Finalement, en pratique il s'avère que MCL est plus simple à implémenter qu'EKF.
+
+
+\begin{table}
+\begin{center} 
+
+\begin{tabular}{l | c | c }
+               & EKF & MCL \\
+               \hline
+Mesures & Repères & Brute \\ 
+Erreur de Mesure & Gaussienne & Toute \\
+Posterior &Gaussienne & Particules \\
+Efficience(mémoire) & ++ & + \\
+Efficience(temps)& ++ & + \\
+Facilité d'implémentation & + & ++ \\
+Résolution & ++ & + \\
+Robuste & - & ++ \\ 
+Localisation Globale & non & oui\\ 
+\hline 
+\end{tabular}
+\caption{Comparaison EKF et MCL}
+\label{MCLVSEKF} 
+\end{center}
+\end{table}
+
+
+\chapter{Simultaneous Localization And Mapping}
+Les algorithmes de type Slam (Simultaneous Localization And Mapping) sont l'étape suivante de l'indépendance des robots. En effet, dans les algorithmes de simple localisation, la carte de l'environnement doit être construite avant de la passer en paramètre aux algorithmes de localisation. Comme son nom l'indique, dans un algorithme Slam la carte est construite en parallèle avec la localisation du robot. La section suivante présente l'EKF SLAM qui est l'extension de l'EKF localisation. Le FastSlam est un autre algorithme SLAM connu qui est l'extension du MCL. Les particles dans le FastSlam sont composée d'une estimation du chemin du robot et de l'ensemble des estimations des points de repères de la carte avec leur covariance associée. La description détaillée de cette algorithmes est disponibles dans le livre «Probabilistic robotics»\cite{Thrun:2005:PR:1121596}     
+
+\section{EKF SLAM}
+EKF SLAM est un algorithme SLAM et comme sont nom le laisser penser est basé sur l'algorithme de localisation EKF. Il utilise également une gaussienne pour représenter son état. Cependant l'état contient à l'instant $t$ en plus de la pose du robot, la carte qui est représentées comme l'ensemble des poses des repères découvert à l'instant $t$. Cet algorithme est aussi découpé en deux étapes important, l'étape de prédiction ainsi que l'état de correction. Dans l'état de prédiction la fonction de mouvement n'influence pas les valeurs de la moyenne des poses des repères. Ce qui est normal car les repères ne bougent pas même si le robot change de position.   
+
+\begin{algorithm}
+\caption{ EKF SLAM  }\label{alg:EKFSLAM }
+\begin{algorithmic}[1]
+\Procedure{EKF SLAM }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m $}  
+\State $\theta_{t-1} \gets \mu_{t-1,\theta } $
+\State $ F_x \gets 
+\begin{pmatrix}
+1&0& 0&0  \ldots 0\\
+0&1&0&0  \ldots 0\\
+0&0&1&\underbrace{0  \ldots 0}\\
+  &  &  & 2N
+\end{pmatrix}
+$
+
+
+\State $\overline{\mu}_t \gets \mu_{t-1} +  F^T_x
+\begin{pmatrix}
+d_t \cos(\theta_{t-1} + \gamma_t) \\
+d_t \sin(\theta_{t-1} + \gamma_t) \\
+\gamma_{t} \\
+\end{pmatrix}
+$ \Comment{prédiction}
+
+\State $G_t \gets I + F_x^T 
+\begin{pmatrix}
+0&0&-d_t \sin(\theta_{t-1} + \gamma_t) \\
+0&0&d_t \cos(\theta_{t-1} + \gamma_t) \\
+0&0&0\\
+\end{pmatrix}
+F_x
+$
+
+
+\State $\overline{\Sigma}_t \gets G_t \Sigma_{t-1}G_t^T + F_x^TR_tF_x $ \Comment{prédiction}
+
+\State $ Q_t \gets 
+\begin{pmatrix}
+\sigma^2_{d^z}&0\\
+0&\sigma^2_{\rho^z}\\
+\end{pmatrix}$
+
+\ForAll{ observed features   {$ z^i_t \gets (d^i_t,\rho^i_t)^T $ }}
+\State $j\gets$ landmark observed
+\If{landmark j never seen before}
+\State $
+\begin{pmatrix}
+\overline{\mu}_{j,x}\\
+\overline{\mu}_{j,y}\\ 
+\end{pmatrix}
+\gets 
+\begin{pmatrix}
+\overline{\mu}_{t,x}\\
+\overline{\mu}_{t,y}\\ 
+\end{pmatrix}
++
+\begin{pmatrix}
+d_t^i cos(\rho_t^i+\overline{\mu}_{t,\theta})\\
+d_t^i sin(\rho_t^i+\overline{\mu}_{t,\theta})\\
+
+\end{pmatrix}
+$ 
+\EndIf
+ 
+ 
+ \State $F_{x,j} \gets 
+ \begin{pmatrix}
+ 1&0&0 &0 \ldots 0 & 0 & 0& 0 \ldots 0 \\
+ 0&1& 0 &0 \ldots 0& 0 & 0& 0 \ldots 0\\
+ 0&0  & 1   &0 \ldots 0& 0 & 0& 0 \ldots 0\\
+  0&0  & 0   &0 \ldots 0& 1 & 0& 0 \ldots 0\\
+ 0&0    &0    &\underbrace{ 0 \ldots 0}& 0 & 1& \underbrace{0 \ldots 0}\\
+   &       &       &  2j-2 &                               &   & 2N-2j        
+ \end{pmatrix}
+ $
+ 
+\State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$
+\State $ \hat{z}^i_t \gets 
+\begin{pmatrix}
+\sqrt{q}\\
+atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu_{t,\theta}}\\
+\end{pmatrix}
+$
+\State $H^i_t \gets
+\begin{pmatrix}
+-\frac{m_{j,x}-\overline{\mu}_{t,x}}{\sqrt{q}}     &    -\frac{m_{j,y}-\overline{\mu}_{t,y}}{\sqrt{q}}   &    0& \frac{m_{j,x}-\overline{\mu}_{t,x}}{\sqrt{q}}     &    \frac{m_{j,y}-\overline{\mu}_{t,y}}{\sqrt{q}}   \\
+\frac{m_{j,y}-\overline{\mu}_{t,y}}{q} & -\frac{m_{j,x}-\overline{\mu}_{t,x}}{q}            &  -1& -\frac{m_{j,y}-\overline{\mu}_{t,y}}{q} & \frac{m_{j,x}-\overline{\mu}_{t,x}}{q}            \\
+
+\end{pmatrix}
+F_{x,j}
+$ 
+
+\State $S^i_t \gets H^i_t \overline{\Sigma_t} [H^i_t]^T + Q_t $ 
+\State $ K_t^i \gets \overline{\Sigma}_t [H_t^i]^T [S^i_t ]^{-1}$ \Comment{Kalman Gain}
+
+\State $ \overline{\mu}_t \gets  \overline{\mu}_t  + K_t^i(z_t^i - \hat{z}^i_t ))  $ \Comment{mise à jour}
+\State $ \overline{\Sigma}_t \gets (I - K_t^iH_t^i)\overline{\Sigma}_t$ \Comment{mise à jour}
+
+\EndFor
+
+\State $ \mu_t \gets  \overline{\mu}_t $  
+
+\State $ \Sigma_t \gets \overline{\Sigma}_t $  
+
+\State \textbf{return} $ \mu_t , \Sigma_t $
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
 \chapter{Algorithmes de recherche du meilleur chemin}
-Les algorithmes de recherche de meilleur chemin consistent à déterminer le chemin entre un point de départ et un point d'arrivée qui sont définis sur la carte. Bien entendu, il est souhaitable que ce chemin ne conduise pas littéralement le robot droit dans le mur ou ne le fasse pas tomber dans les escaliers dans le cas d'un robot aspirateur domestique. Ce chemin est défini par un ensemble de points que doit suivre le robot pour se déplacer du point de départ jusqu'au point d'arrivée. Dans la figure ~\ref{CHnonValide} les obstacles sont représentés par la couleur grisée et les positions libres qui permettent au robot de se déplacer sans percuter d'objet sont représentées en blanc. Il est donc évident que le chemin représenté n'est pas souhaitable, car celui-ci risque de faire percuter le robot avec un objet de son environnement. Les sections suivantes décrivent comment construire un graphe à l'aide d'une telle carte. Une fois ce graphe construit, il est possible d'appliquer les algorithmes classiques de recherche de chemin dans un graphe. Les plus connus sont A star et Dijksta. Il est donc possible d'utiliser les connaissances disponibles dans le domaine de la théorie des graphes qui est un domaine relativement bien connu.
+Les algorithmes de recherche de meilleur chemin consistent à déterminer le chemin entre un point de départ et un point d'arrivée qui sont définis sur la carte. Bien entendu, il est souhaitable que ce chemin ne conduise pas littéralement le robot droit dans le mur ou ne le fasse pas tomber dans les escaliers dans le cas d'un robot aspirateur domestique. Ce chemin est défini par un ensemble de points que doit suivre le robot pour se déplacer du point de départ jusqu'au point d'arrivée. Dans la figure ~\ref{CHnonValide} les obstacles sont représentés par la couleur grisée et les positions libres qui permettent au robot de se déplacer sans percuter d'objet sont représentées en blanc. Il est donc évident que le chemin représenté n'est pas souhaitable, car celui-ci risque de faire percuter le robot avec un objet de son environnement. Les sections suivantes décrivent comment construire un graphe à l'aide d'une telle carte. Une fois ce graphe construit, il est possible d'appliquer les algorithmes classiques de recherche de chemin dans un graphe. Les plus connus sont les algorithmes A star et Dijkstra. Il est donc possible d'utiliser les connaissances disponibles dans le domaine de la théorie des graphes qui est un domaine relativement bien connu.
 
 \begin{figure}
 \begin{center}
@@ -393,23 +554,25 @@ Les algorithmes de recherche de meilleur chemin consistent à déterminer le chemi
 
 
 \section{Graphe}
-Pour pouvoir déterminer un chemin qui ne risque pas de percuter les objets de l'environnement, ses algorithmes nécessitent de posséder une ou plusieurs cartes de l'environnement du robot. Ces cartes peuvent avoir été générées dynamiquement par le robot ou bien construites au préalable. Elles serviront à produire un graphe où les noeuds représentent des positions possibles du robot et les arrêtent les chemins qui permettent de rejoindre ces différentes positions. La figure ~\ref{CHValide} présente le graphe construit à l'aide de la carte de la figure  ~\ref{CHnonValide} . Pour construire ce graphe à partir de cette carte, une technique est de découper l'environnement du robot en une carte grillagée où chaque élément de la grille prend une valeur occupée ou libre selon qu'un objet se trouve à l'intérieure ou non. Les arêtes du graphe représentent le lien entre deux cases adjacentes libres dans la grille. Un cout d'une unité est associé à ces arêtes. Le cout correspond à la distance entre chaque noeud. Si une case n'est pas libre, aucun lien ne la relit. Ce qui représente qu'il ne faut pas passer par cette case pour définir le chemin du robot. Il est ainsi possible de passer de case en case pour déterminer le chemin entre un point de départ et un point d'arrivée. Le cout total du chemin correspond à la somme des couts des arêtes empruntées pour aller du point de départ jusqu'au point d'arrivée. Il est également possible de déterminer si un point d'arrivée n'est pas joignable. Ce qui se produit lorsqu'il est impossible d'y accéder sans percuter des objets de l'environnement.  
+Pour pouvoir déterminer un chemin qui ne risque pas de percuter les objets de l'environnement, ces algorithmes nécessitent de posséder une ou plusieurs cartes de l'environnement du robot. Ces cartes peuvent avoir été générées dynamiquement par le robot ou bien construites au préalable. Elles serviront à produire un graphe où les noeuds représentent des positions possibles du robot et les arrêtent les chemins qui permettent de rejoindre ces différentes positions. La figure ~\ref{CHValide} présente le graphe construit à l'aide de la carte de la figure  ~\ref{CHnonValide} . Pour construire ce graphe à partir de cette carte, une technique est de découper l'environnement du robot en une carte grillagée où chaque élément de la grille prend une valeur occupée ou libre selon qu'un objet se trouve à l'intérieure ou non. Les arêtes du graphe représentent le lien entre deux cases adjacentes libres dans la grille. Un cout d'une unité est associé à ces arêtes. Le cout correspond à la distance entre chaque noeud. Si une case n'est pas libre, aucun lien ne la relit. Ce qui représente qu'il ne faut pas passer par cette case pour définir le chemin du robot. Il est ainsi possible de passer de case en case pour déterminer le chemin entre un point de départ et un point d'arrivée. Le cout total du chemin correspond à la somme des couts des arêtes empruntées pour aller du point de départ jusqu'au point d'arrivée. Il est également possible de déterminer si un point d'arrivée n'est pas joignable. Ce qui se produit lorsqu'il est impossible d'y accéder sans percuter des objets de l'environnement.  
 
 \begin{figure}
 \begin{center}
 
-\includegraphics[scale=0.7]{./../img/map_path.png}
+\includegraphics[scale=1]{./../img/map_path.png}
 \caption{Chemin valide construit à l'aide d'un graphe }
 \source{\href{https://en.wikipedia.org/wiki/Motion_planning}{Wikipedia}, Auteur : Simeon87 }
 \label{CHValide}
 \end{center}
 \end{figure}
 
-Plus la grille à un découpage important, et plus le chemin retourné est précis. Cependant, un découpage plus important augmente le temps de calcul de façon exponentielle. En plus d'un paramètre qui permet de déterminer la granularité de la carte, un paramètre qui permet de définir la distance à laquelle le robot peut être proche des murs doit être défini. Cette valeur permet de prendre en considération la largeur du robot ainsi que ses capacités de rotations. En effet, il est commun que la position du robot défini le centre du robot, cependant celui-ci possède une largeur qu'il faut prendre en considération pour éviter de percuter les murs avec les côtés du robot. 
+Plus la grille à un découpage important, et plus le chemin retourné est précis. Cependant, un découpage plus important augmente le temps de calcul de façon exponentielle. En plus d'un paramètre qui permet de déterminer la granularité de la carte, un paramètre qui permet de définir la distance à laquelle le robot peut être proche des murs doit être défini. Cette valeur permet de prendre en considération la largeur du robot ainsi que ses capacités de rotations. En effet, il est commun que la position du robot défini le centre du robot, cependant celui-ci possède une largeur qu'il faut prendre en considération pour éviter de percuter les murs avec les côtés du robot. Ce paramètre permet donc de construire les chemins avec des noeuds qui sont toujours à une distance minimale des murs. 
  
 
 \section{Dijkstra}
-L'algorithme de Dijkstra publié en 1959 par son inventeur du même nom permet de résoudre le problème du plus court chemin en une complexité polynomiale en théorie des graphes. Dans le cas de la recherche d'un chemin valide pour un robot, cet algorithme prend en paramètre le graphe défini dans la section précédente et retourne le plus court chemin valide. Une condition supplémentaire sur le graphe est nécessaire pour appliquer Dijkstra. Le graphe doit être connexe pour trouver le plus court chemin, c'est-à-dire qu? entre chaque sommet du graphe il doit exister un chemin. Dans le cas contraire, il est évidemment impossible de déterminer un plus court chemin entre deux positions non joignables l'une à l'autre. L'algorithme ~\ref{alg:Dijkstra}  correspond au pseudocode de l'algorithme de Dijkstra. Il est composé de deux parties principales. La première permet de définir la distance entre le noeud de départ et l'ensemble des noeuds du graphe. L'algorithme procède de façon itérative pour définir successivement les distances entre le noeud de départ et les noeuds les plus proches. La seconde partie permet de reconstruire le chemin entre les deux noeuds en partant du noeud de fin jusqu'à arriver au noeud de départ. L'algorithme de Dijksta est robuste et trouve toujours le meilleur chemin. Cependant, lorsque la taille du graphe devient importante et qu'on souhaite trouver rapidement le plus court chemin il est intéressant d'utiliser l'algorithme A star qui est en moyenne plus rapide que Dijkstra. Cependant dans le pire des cas ils ont une complexité identique. La section suivante décrit donc l'algorithme A star. 
+L'algorithme de Dijkstra publié en 1959~\cite{EWD287} par son inventeur du même nom permet de résoudre le problème du plus court chemin en une complexité polynomiale en théorie des graphes. Dans le cas de la recherche d'un chemin valide pour un robot, cet algorithme prend en paramètre le graphe défini dans la section précédente et retourne le plus court chemin valide. Une condition supplémentaire sur le graphe est nécessaire pour appliquer Dijkstra. Le graphe doit être connexe pour trouver le plus court chemin, c'est-à-dire qu'entre chaque sommet du graphe il doit exister un chemin. Dans le cas contraire, il est évidemment impossible de déterminer un plus court chemin entre deux positions non joignables l'une à l'autre. 
+
+L'algorithme ~\ref{alg:Dijkstra}  correspond au pseudocode de l'algorithme de Dijkstra. Il est composé de deux parties principales. La première permet de définir la distance entre le noeud de départ et l'ensemble des noeuds du graphe. L'algorithme procède de façon itérative pour définir successivement les distances entre le noeud de départ et les noeuds les plus proches. La seconde partie permet de reconstruire le chemin entre les deux noeuds en partant du noeud de fin jusqu'à arriver au noeud de départ. L'algorithme de Dijksta est robuste et trouve toujours le meilleur chemin. Cependant, lorsque la taille du graphe devient importante et qu'on souhaite trouver rapidement le plus court chemin il est intéressant d'utiliser l'algorithme A star qui est en moyenne plus rapide que Dijkstra. Cependant dans le pire des cas ils ont une complexité identique. La section suivante décrit donc l'algorithme A star. 
 
 
 \begin{algorithm}
@@ -443,8 +606,20 @@ L'algorithme de Dijkstra publié en 1959 par son inventeur du même nom permet de 
 
 
 \section{A star}
-L'algorithme A star a été publié en 1968  et fonctionne de façon relativement semblable à l'algorithme de Dijkstra, mais celui-ci permet d'obtenir de meilleure performance que Dijksta grâce à l'utilisation d'une heuristique. Cette heuristique donne une estimation du cout jusqu'aux destinations recherchées. Pour appliquer A star son heuristique doit être admissible c'est-à-dire que la fonction heuristique ne doit jamais surestimer la valeur réelle du cout. Dans la recherche du plus court chemin valide de notre robot, l'heuristique représente la distance à vole d'oiseau qui est toujours plus courte ou égale à n'importe quel chemin. 
+L'algorithme A star a été publié en 1968~\cite{AICPub834}  et fonctionne de façon relativement semblable à l'algorithme de Dijkstra, mais celui-ci permet d'obtenir de meilleure performance que Dijksta grâce à l'utilisation d'une heuristique. Cette heuristique donne une estimation du cout jusqu'aux destinations recherchées. Pour appliquer A star son heuristique doit être admissible c'est-à-dire que la fonction heuristique ne doit jamais surestimer la valeur réelle du cout. Dans la recherche du plus court chemin valide de notre robot, l'heuristique représente la distance à vole d'oiseau qui est toujours plus courte ou égale à n'importe quel chemin. L'algorithme ~\ref{alg:AStar} correspond au pseudocode de l'algorithme A star. L'algorithme A star comme celui de Dijkstra est découpé en deux parties principales qui consistent dans la première partie à déterminer les plus courts chemins entre un sommet initial et les autres sommets, suivi de la reconstruction du chemin entre le sommet d'arrivée et le sommet de départ. 
 
+Intuitivement l'algorithme A star composé de l'heuristique estimant la distance à vole d'oiseau explore itérativement le noeud joignable et étant estimés par l'heuristique comme le plus proche du noeud cible. Lorsque ce noeud est choisi, ces voisins deviennent joignables et l'heuristique estime la distance entre ses voisins et le noeud cible. Et ce itérativement jusqu'au noeud cible. Dans un labyrinthe cet algorithme peut avoir des performances moins bonnes. La figure \ref{AstarLab} illustre cette situation. Il est clair qu' à vol d'oiseau le noeud à gauche du départ est le chemin unique et le plus court pour atteindre l'arrivée. Cependant l'algorithme A star, va commencer par explorer les noeuds à droite du départ pour arriver jusqu'au cul-de-sac et finalement explorer le noeud à gauche du départ. Cependant, l'algorithme fini toujours par retourner le chemin le plus court.     
+
+
+\begin{figure}
+\begin{center}
+
+\includegraphics[scale=0.7]{./../img/Schema_Astar_labyrinthe.png}
+\caption{A star dans un labyrinthe }
+\source{\href{https://fr.wikipedia.org/wiki/Algorithme_A*}{Wikipedia}, Auteur : Bayo  }
+\label{AstarLab}
+\end{center}
+\end{figure}
 
 \begin{algorithm}
 \caption{ A star  }\label{alg:AStar}

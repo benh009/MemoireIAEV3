@@ -1,4 +1,4 @@
-\chapter{Implémentation personnelle}
+\chapter{Implémentation d'EKF}
 Cette section contient la description de mon implémentation de l'algorithme EKF dans la librairie Lejos. Par la suite, l'implémentation de l'algorithme EKF est comparée à l'implémentation MCL déjà présente dans la librairie Lejos. 
 \section{Description du robot construit}
 La plateforme du robot est de type « differential wheeled robot »(voir ~\ref{DWR}). Ce qui consiste en deux moteurs indépendants positionnés de façons opposées sur le robot. Ce choix de plateforme est commun en robotique. Cette plateforme est simple à mettre en oeuvre et fournit une amplitude de mouvement importante. Les plateformes de type steering sont semblables aux voitures classiques. Elle demande un mécanisme plus complexe et leur amplitude de mouvement est moindre et donc moins adaptée à la robotique.
@@ -14,6 +14,14 @@ La plateforme du robot est de type « differential wheeled robot »(voir ~\ref{DWR
 \label{DWR}
 \end{figure}
 
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/EV3Robot.png}
+\caption{Robot }
+\end{center}
+\label{DWR}
+\end{figure}
 
 
 
@@ -54,7 +62,7 @@ En plus, de ces deux cartes qui ont été générées à la main au préalable. Une car
 \begin{figure}
 \begin{center}
 
-\includegraphics[scale=0.7]{./../img/ekfmap.png}
+\includegraphics[scale=0.6]{./../img/ekfmap.png}
 \caption{carte EKF }
 \label{ekfmap}
 \end{center}
@@ -68,6 +76,7 @@ L'implémentation EKF utilise la technique de détection de codes QR comme feature
 Cette implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : \href{http://commons.apache.org/proper/commons-math/}{commons.apache.org/proper/commons-math}}  qui est une librairie mathématique open-source de Apache. Celle-ci contient une série de classe permettant de manipuler et d'appliquer des opérations sur des matrices. Ce qui se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation du Extended Kalman Filter. 
 
 \subsection{Représentation de la matrice de covariance}
+\label{sectionCovariance}
 La matrice de covariance est comme son nom l'indique une matrice qui permet de représenter la covariance entre chaque variable de la position du robot. Les valeurs contenues dans cette matrice sont très utiles, mais restent fastidieuses à lire, car cette matrice change dynamiquement et régulièrement. Il a donc été important d'implémenter une représentation graphique des informations importantes de cette matrice de covariance. Cette représentation permet de se faire une idée rapide de ces valeurs, sans devoir les analyser une à une. La figure~\ref{cov} présente la représentation choisie de la covariance. La moyenne donne la position estimée du robot. Cette position estimée est représentée par le point bleu central qui correspond à la position $x,y$ estimée du robot et la droite bleue au milieu des deux autres correspond à la direction estimée du robot. L'ellipse autour de la position ainsi que les deux autres droites permettent de représenter la matrice de covariance. Voici la définition de la covariance pour mieux comprendre ce que représente la covariance et comprendre comment sont construites cette ellipse et ces droites  : 
 
 $$ Cov(X,Y) = E[(X-E[X])(Y-E[Y])]  $$  
@@ -129,82 +138,6 @@ où $A$ correspond à la matrice de covariance, $v$ le vecteur propre et $\lambda$
 
 
 
-
-\begin{algorithm}
-\caption{ EKFCodeQR  }\label{alg:EKFCodeQR }
-\begin{algorithmic}[1]
-\Procedure{EKFCodeQR }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m  $}  
-\State $\theta \gets \mu_{t-1,\theta } $
-\State $ G_t \gets 
-\begin{pmatrix}
-1&0& -d_t \sin( \theta)\\
-0&1&d_t\cos(\theta)\\
-0&0&1\\
-\end{pmatrix}
-$
-\State $V_t \gets 
-\begin{pmatrix}
-\cos() & -d \sin\\
-\sin()& d_t \cos \\
-0&1\\
-\end{pmatrix}
-$
-\State $M_t \gets 
-\begin{pmatrix}
-\sigma^2 &0\\
-0&\sigma^2 \\ 
-\end{pmatrix}
-$
-
-\State $\overline{\mu}_t \gets \mu{t-1} + 
-\begin{pmatrix}
-d \cos \\
-d \sin \\
-\gamma \\
-\end{pmatrix}
-$
-
-
-\State $\overline{\Sigma}_t \gets G_t \Sigma_{t-1}G_t^T + V_tM_tV_t^T $
-\State $ Q \gets 
-\begin{pmatrix}
-\sigma^2_r&0&0\\
-0&\sigma^2_r&0\\
-0&0&\sigma^2_r\\
-\end{pmatrix}$
-
-\ForAll{ observed features   {$ z^i_t \gets (d^i_t,\rho^i_t)^T $ }}
-\State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$
-\State $ \hat{z}^i_t \gets 
-\begin{pmatrix}
-\sqrt{q}\\
-atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu_{t,\theta}}\\
-\end{pmatrix}
-$
-\State $H^i_t \gets
-\begin{pmatrix}
--\frac{m_{j,x}-\overline{\mu}_{t,x}}{\sqrt{q}}     &    -\frac{m_{j,y}-\overline{\mu}_{t,y}}{\sqrt{q}}   &    0\\
-\frac{m_{j,y}-\overline{\mu}_{t,y}}{q} & -\frac{m_{j,x}-\overline{\mu}_{t,x}}{q}            &  -1\\
-
-\end{pmatrix}
-$ 
-
-\State $S^i_t \gets H^i_t \overline{\Sigma_t} [H^i_t]^T + Q_t $ 
-\State $ K_t^i \gets \overline{\Sigma}_t [H_t^i]^T [S^i_t ]^{-1}$ \Comment{Kalman Gain}
-
-\State $ \overline{\mu}_t \gets  \overline{\mu}_t  + K_t^i(z_t^i - \hat{z}^i_t ))  $ \Comment{mise à jour}
-\State $ \overline{\Sigma}_t \gets (I - K_t^iH_t^i)\overline{\Sigma}_t$ \Comment{mise à jour}
-
-\EndFor
-
-\State $ \mu_t \gets  \overline{\mu}_t $  
-
-\State $ \Sigma_t \gets \overline{\Sigma}_t $  
-
-\State \textbf{return} $ \mu_t , \Sigma_t $
-\EndProcedure
-\end{algorithmic}
-\end{algorithm}
 
 
 
