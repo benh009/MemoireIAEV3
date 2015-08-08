@@ -1,37 +1,29 @@
-\chapter{Implémentation d'EKF}
+\chapter{Algorithme de localisation}
 Cette section contient la description de mon implémentation de l'algorithme EKF dans la librairie Lejos. Par la suite, l'implémentation de l'algorithme EKF est comparée à l'implémentation MCL déjà présente dans la librairie Lejos. 
-\section{Description du robot construit}
-La plateforme du robot est de type « differential wheeled robot »(voir ~\ref{DWR}). Ce qui consiste en deux moteurs indépendants positionnés de façons opposées sur le robot. Ce choix de plateforme est commun en robotique. Cette plateforme est simple à mettre en oeuvre et fournit une amplitude de mouvement importante. Les plateformes de type steering sont semblables aux voitures classiques. Elle demande un mécanisme plus complexe et leur amplitude de mouvement est moindre et donc moins adaptée à la robotique.
-
-\begin{figure}
-\begin{center}
-\includegraphics{./../img/DifferentialWheeledRobot.png}
-\caption{Differential wheeled robot }
-\source{\href{https://en.wikipedia.org/wiki/Differential_wheeled_robot}{Wikipedia},
- Auteur : Patrik}
-
-\end{center}
-\label{DWR}
-\end{figure}
-
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.7]{./../img/EV3Robot.png}
-\caption{Robot }
-\end{center}
-\label{DWR}
-\end{figure}
 
 
 
-\section{Implémentation de l'algorithme EKF }
 
-\subsection{Détection de Feature avec la caméra du smartphone}
+\section{Algorithme EKF }
+
+\subsection{Odométrie}
+L'odométrie permet de determiner les mouvements $u_t$ nécessaire à l'étape de prédiction de chaque itération de l'algorithme EKF. Pour déterminer le mouvement $u_t$ l'odométrie consiste à compter le nombre de rotation des moteurs et d'y associer le mouvement correspondant en fonction du chassis du robot. Il est nécessaire de connaitre la taille des roues ainsi que leur écartement pour déterminer le mouvement en fonction du nombre de tour des moteurs. Dans le cas d'un robot «Differential wheeled» les formules sont les  suivantes : 
+$$
+d =   \frac{d_1 + d_2}{2}
+$$
+$$
+\rho =\frac{d_1-d_2}{b}
+$$
+
+où $d_1 $ et $d_2$ correspondent respectiment à la distance parcourue par les roues 1 et 2. Et $b$ correspond à l'écart entre les deux roues. $d_1$ et $d_2$ est calculé en multipliant le nombre de tour des capteurs multiplier par la circonférence de la roue  
+$$d_1 = 2*\pi R_1$$ 
+où $R1$ est le rayon de la roue 1. Les mouvements doivent être soit une ligne droite soit une rotation pour pouvoir appliquer le modèle de mouvement qui rappelons le est composé d'une première rotation suivi d'un mouvement en ligne droite. Cette représentation n'est pas restrictive. En effet, il est possible de découper la trajectoire en un ensemble de sous mouvement composé de ligne droit et de rotation.  
+
+\subsection{Détection de repères}
 \label{sec:Detection de Feature avec la camera du smartphone}
 
 Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : \href{http://zbar.sourceforge.net/}{zbar.sourceforge.net}} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smarphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire : un carré de 10cm de coté ). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10cm de coté(voir ~\ref{EDQRC}).
-$$Distance =  \frac{\frac{CapteurResolutionHorizontale }{MesureNombrePixelsHorinzontale} * LargeurCodeQR}  {2*\tan(\alpha)} $$
+$$Distance =  \frac{\frac{CapteurResolutionHorizontale }{MesureNombrePixelsHorizontale} * LargeurCodeQR}  {2*\tan(\alpha)} $$
 
 
 \begin{figure}
@@ -49,6 +41,7 @@ si le code QR se trouve à droite du robot la formule devient :
 $$\theta = \frac{\alpha * 2*CentreCodeQRPixel}{ CapteurResolutionHorizontale}-\alpha $$
 
 L'étalonnage consiste à déterminer $\alpha $ à l'aide de mesures faites à distance connue. 
+
 
 
 
@@ -75,7 +68,7 @@ L'implémentation EKF utilise la technique de détection de codes QR comme feature
 
 Cette implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : \href{http://commons.apache.org/proper/commons-math/}{commons.apache.org/proper/commons-math}}  qui est une librairie mathématique open-source de Apache. Celle-ci contient une série de classe permettant de manipuler et d'appliquer des opérations sur des matrices. Ce qui se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation du Extended Kalman Filter. 
 
-\subsection{Représentation de la matrice de covariance}
+\subsection{Matrice de covariance}
 \label{sectionCovariance}
 La matrice de covariance est comme son nom l'indique une matrice qui permet de représenter la covariance entre chaque variable de la position du robot. Les valeurs contenues dans cette matrice sont très utiles, mais restent fastidieuses à lire, car cette matrice change dynamiquement et régulièrement. Il a donc été important d'implémenter une représentation graphique des informations importantes de cette matrice de covariance. Cette représentation permet de se faire une idée rapide de ces valeurs, sans devoir les analyser une à une. La figure~\ref{cov} présente la représentation choisie de la covariance. La moyenne donne la position estimée du robot. Cette position estimée est représentée par le point bleu central qui correspond à la position $x,y$ estimée du robot et la droite bleue au milieu des deux autres correspond à la direction estimée du robot. L'ellipse autour de la position ainsi que les deux autres droites permettent de représenter la matrice de covariance. Voici la définition de la covariance pour mieux comprendre ce que représente la covariance et comprendre comment sont construites cette ellipse et ces droites  : 
 
@@ -132,17 +125,16 @@ où $A$ correspond à la matrice de covariance, $v$ le vecteur propre et $\lambda$
 \end{center}
 \end{figure}
 
-
+\section{Tests et Résultats }
 \subsection{Tests et résultats de l'implémentation de EKF}
 
+\subsection{Comparaison avec le MCL}
 
 
 
+\chapter{Occupancy Grid}
 
 
-
-
-\section{Comparaison avec le MCL}
 
 
 

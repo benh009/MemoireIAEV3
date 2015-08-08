@@ -54,6 +54,7 @@ L'ensemble des problèmes et contraintes présentés met en évidence qu'il n'est pa
 
 
 \subsection{Modèle de mouvement et d'observation}
+\label{sec:ModeleMovObser}
 
 L'objectif de la localisation d'un robot est de définir sur une carte la position du robot à un instant donné. Cette position est dénotée par le vecteur $x_t$. 
 Dans la suite de ce mémoire, la position du robot est définie par ses coordonnées dans un espace à deux dimensions ainsi que par son orientation. Les algorithmes présentés ne se limitent pas à cette situation et peuvent être utilisés pour un espace à un nombre de dimensions supérieures. L'état des bras des robots industriels~\cite{osha.gov} peut également être représenté à l'aide de l'angle de chaque articulation du bras. Toutefois, les principes sont plus simples à comprendre dans cette situation et cette situation est souvent suffisante pour les robots mobiles. Formellement, la position d'un robot à l'instant $t$ dans un espace à deux dimensions peut-être définie par le vecteur :
@@ -191,29 +192,30 @@ Les algorithmes probabilistes souffrent de deux défauts importants. La première 
 
 \section{Algorithmes de résolution du problème de localisation}
 \label{algoLoc}
-L'algorithme de Markov permet de donner l'idée générale des algorithmes de localisation. Cependant pour pouvoir implémenter concrètement un algorithme de localisation un certain nombre de questions sont encore ouvertes. La plus importante correspond à la représentation de la fonction de probabilité. Deux grandes approches existent. La première définit une loi de probabilité à l'aide de ses paramètres. Et la seconde représente la probabilité à l'aide d'un certain nombre d'éléments discrets. Les sections suivantes discutent de ces deux approches. Elles présentent les algorithmes EKF et MCL qui font partie des algorithmes de localisation les plus connus et qui présentent de bons résultats en pratique. 
+L'algorithme de Markov permet de donner l'idée générale des algorithmes de localisation. Cependant, pour pouvoir implémenter concrètement un algorithme de localisation un certain nombre de questions sont encore ouvertes. La plus importante correspond à la représentation de la fonction de probabilité. Deux grandes approches existent. La première définit une loi de probabilité à l'aide de ses paramètres. Et la seconde représente la probabilité à l'aide d'un certain nombre d'éléments discrets. Les sections suivantes discutent de ces deux approches. Elles présentent les algorithmes EKF et MCL qui font partie des algorithmes de localisation les plus connus et qui présentent de bons résultats en pratique. 
 
 \subsection{Algorithme paramétrique(EKF)}
-Les algorithmes paramétriques permettent de représenter les croyances de la position d'un robot à l'aide de lois de probabilité. Les concepts mathématiques de l'algorithme de Kalman ont été développés dans les années 60 \cite{Kalman61newresults}. L'algorithme de Kalman n'est pas uniquement utilisé dans la localisation en robotique. Il aussi par exemple utilisé dans la restauration d'image 2D~\cite{1169273}, ou bien dans la gestion de la congestion du trafic routier~\cite{TrafficFlow} .  Dans le cas de l'algorithme Kalman Filter(KF)~\ref{alg:kalmanFilter} la loi de probabilité est une loi normale. Elle dépend donc de deux paramètres, son espérance $\mu$ et son écart type $\Sigma $. Cette loi normale est une loi normale multivariée lorsque le vecteur de position est composé de plusieurs éléments.  Dans le cas de notre robot, on définit alors la moyenne de cette fonction multivariée comme suit$$\mu = x_t =  \begin{pmatrix} x\\y\\ \theta  \end{pmatrix}$$ 
-L'écart type est défini comme suit dans le cas de notre robot : 
+Les algorithmes paramétriques de localisation permettent de représenter la croyance de la position d'un robot à l'aide d'une loi de probabilité. Les concepts mathématiques de l'algorithme de Kalman qui est un algorithme paramétrique ont été développés dans les années 60 \cite{Kalman61newresults}. L'algorithme de Kalman n'est pas uniquement utilisé dans la localisation en robotique. Il est aussi par exemple utilisé dans la restauration d'image 2D~\cite{1169273}, ou bien dans la gestion de la congestion du trafic routier~\cite{TrafficFlow}. Dans le cas de l'algorithme Kalman Filter(KF)(voir algorithme ~\ref{alg:kalmanFilter}) la loi de probabilité est une loi normale. Elle dépend donc de deux paramètres, son espérance $\mu$ et son écart type $\sigma $ ou $\sigma^2$ qui correspond à la variance. Cette loi normale est une loi normale multivariée lorsque le vecteur de position est composé de plusieurs éléments. Dans le cas de notre robot, on définit alors la moyenne de cette fonction multivariée comme suit : 
+$$\mu = x_t =  \begin{pmatrix} x\\y\\ \theta  \end{pmatrix}$$ 
+La matrice de covariance  est définie comme suit dans le cas de notre robot : 
 $$
-\Sigma = Var(\vec{x_t})= 
+ \Sigma = Var(\vec{x_t})= 
 \begin{pmatrix} 
 Var(x) & Cov(x,y)& Cov(x,\theta) \\ 
 Cov(y,x)& Var(y) & Cov(y,\theta) \\ 
 Cov(\theta,x) & Cov(\theta,y) & Var(\theta)\\
 \end{pmatrix}
 $$
-Cette matrice permet d'exprimer les erreurs sur la possition du robot. Les valeurs de la matrice augmentent durant le parcourt du robot et diminue lorsque le robot effectue une observation qui lui permet d'augmenter sa certitude en sa possition. Une explication détaillée de ce à quoi correspond cette matrice et comment il est possible de la représenté est donnée dans la section~\ref{sectionCovariance}.
+Cette matrice permet d'exprimer les erreurs sur la position du robot. Les valeurs de la diagonale de la matrice augmentent durant le parcourt du robot. Elles diminuent lorsque le robot effectue une observation qui lui permet d'augmenter sa certitude en sa position. Une explication détaillée de la matrice de covariance est donnée dans la section~\ref{sectionCovariance}. On y trouve également une technique pour représenter visuellement la matrice de covariance.  
 
-L'algorithme de Kalman  est composé des deux mêmes étapes principales que l'algorithme de Markov, la prédiction et la mise à jour. La prédiction consiste à déplacer la moyenne de la gaussienne en fonction des mouvements du robot et d'adapter l'écart type en fonction de l'erreur associé au mouvement.
-L'étape de mise a jour permet de mettre a jour la moyenne et l'écart type à l'aide des observations et des erreurs de mesures liées à l'observations. L'importance associée à l'observation est formulée à l'aide du gain de Kalman exprimé à la ligne 4 de l'algorithme. 
+L'algorithme de Kalman  est composé des deux mêmes étapes principales que l'algorithme de Markov, la prédiction et la mise à jour. La prédiction consiste à déplacer la moyenne de la gaussienne en fonction des mouvements du robot. Elle adapte la matrice de covariance en fonction de l'erreur associée au mouvement.
+L'étape de mise à jour permet de mettre à jour la moyenne et  la matrice de covariance à l'aide des observations et des erreurs de mesure liées à l'observation. L'importance associée à l'observation au temps $t$ est formulée à l'aide du gain de Kalman exprimé à la ligne 4 de l'algorithme. Cette importance est fonction de la certitude en la position du robot et de la certitude de l'observation. 
 
-La matrice $R_t $ et $Q_t$ correspondent respectivement à la covariance de la fonction gaussienne centré des erreur de mouvement et des erreurs d'observations. $R_t$  est  de dimensions $n \times n$ où $n$ est la taille du vecteur de position $x_t$. $Q_t$ est de dimensions $k \times n$ où $k$ est la dimension du vecteur d'obsevation $z_t$. La matrice $A_t$ et $B_t$ sont respectivement de dimensions $n \times n$ et $ n \times m $ où $m$ correspond à la dimension du vecteur de contrôle. La matrice $B$ permet d'exprimer la transformation utile pour exprimer le vecteur de contrôle dans les mêmes variable que le vecteur de position  $\mu$. De même la matrice $C $ de dimension $k \times n$ permet d'exprimer la transformation utile pour exprimer le vecteur de postion dans les mêmes variables que le vecteur d'observation. 
+La matrice $R_t $ et  la matrice $Q_t$ correspondent respectivement à la covariance des fonctions gaussiennes centrées en zéro associées aux erreurs de mouvement et aux erreurs d'observation. La matrice $R_t$  est de dimensions $n \times n$ où $n$ est la taille du vecteur de position $x_t$. La matrice $Q_t$ est de dimensions $k \times n$ où $k$ est la dimension du vecteur d'observation $z_t$. Les matrices $A_t$ et $B_t$ sont respectivement de dimensions $n \times n$ et $ n \times m $ où $m$ correspond à la dimension du vecteur de contrôle. La matrice $B$ permet d'exprimer la transformation utile pour exprimer le vecteur de contrôle $u_t$ dans les mêmes variables que le vecteur de position  $\mu$. De même la matrice $C $ de dimensions $k \times n$ permet d'exprimer la transformation utile pour exprimer le vecteur de postillon dans les mêmes variables que le vecteur d'observation. 
 
-Dans l'algorithme de Kalman l'ensemble des opérations sont effectuées sur des matrices. Les matrices manipulée devienne de grande taille lorsque la posiiton $x_t$ et donc la moyenne $\mu_t$ devient de taille importante. Rappelons que $x_t$ représente la position du robot. Dans le cas d'un robot avec plusieurs articulations, la position dans l'espace de chaque articulation est contenue dans ce vecteur. Ce qui montre que la taille de ce vecteur peut augmenter rapide. Deplus, la taille de la matrice de covariance est le carré de la taille de se vecteur de position. Il est donc important d'utiliser des librairie performante dans la manipulation de matrice pour évidé de rendre cette algorithme inutilisable. Finalement, certaine propriété de ces matrices permet de diminuer le temps de calcul. L'inversion de $(C_t \overline{\Sigma}_t C^T_t + Q_t )^{-1}$ qui est une matrice symétrique peut être réalisé à l'aide de la décompostion de Cholesky~\cite{wiki:cholesky}.
+Dans l'algorithme de Kalman, l'ensemble des opérations est effectué sur des matrices. Les matrices manipulées deviennent de grande taille lorsque la position $x_t$ et donc la moyenne $\mu_t$ deviennent de taille importante. Rappelons que $x_t$ représente la position du robot. Dans le cas d'un robot avec plusieurs articulations, la position dans l'espace de chaque articulation est contenue dans ce vecteur. Ce qui montre que la taille de ce vecteur peut augmenter rapidement. De plus, la taille de la matrice de covariance est le carré de la taille de ce vecteur de position. Il est donc important d'utiliser des librairies performantes pour la manipulation de matrice. Cela évite de rendre cet algorithme inutilisable. Finalement, certaines propriétés de ces matrices permettent de diminuer le temps de calcul. L'inversion de $(C_t \overline{\Sigma}_t C^T_t + Q_t )^{-1}$ qui est une matrice symétrique peut être réalisée à l'aide de la décomposition de Cholesky~\cite{wiki:cholesky}.
 
-En appliquant les recommandations de manipulations de matrice, l'algorithme du filtre de Kalman a une bonne complexité. $O(n^{2.4}+ k^{2.4} )$ où $k$ représente la taille du vecteur d'observation $z_t$ et $n$ la taille du vecteur de position $x_t$. Dans beaucoup d'application des algorithmes de localisation, la taille de $n$ est tendance à être supérieure à celle de $k$. La complexité est donc dominé par $O(n^{2.4})$  
+En appliquant les recommandations de manipulations de matrice, l'algorithme du filtre de Kalman a une bonne complexité. La complexité est de $O(n^{2.4}+ k^{2.4} )$ où $k$ représente la taille du vecteur d'observation $z_t$ et $n$ la taille du vecteur de position $x_t$. Dans beaucoup d'applications pratiques la taille de $n$ a tendance à être supérieure à celle de $k$. La complexité est donc dominée par $O(n^{2.4})$  
 
 
 \begin{algorithm}
@@ -245,12 +247,86 @@ En appliquant les recommandations de manipulations de matrice, l'algorithme du f
 \end{algorithm}
 
 
-L'algorithme Extended Kalman filter(EKF) correspond à la version non linéaraire de l'algorithme du filtre de Kalman. Cette variante a été développée 
-quelques années plus tard  par la NASA\cite{Smith1962} pour faire face au fait que la plupart des systèmes physiques ne sont pas linéaires. Pour ce faire les fonctions $g$ et $h$ ont été introduites. Ces fonctions ne doivent pas obligatoirement être linéaire mais doivent être dérivables. Contrairement ou filtre de Kalman classique où les fonctions sont obligatoirement linéaire pour préserver des fonctions de répartition gausienne. 
+L'algorithme Extended Kalman filter(EKF) correspond à la version non linéaire de l'algorithme du filtre de Kalman. Cette variante a été développée
+quelques années plus tard  par la NASA\cite{Smith1962} pour faire face au fait que la plupart des systèmes physiques ne sont pas linéaires. 
+Pour ce faire les fonctions $g$ et $h$ ont été introduites dans l'algorithme EKF. Ces fonctions sont des fonctions linéaires ou non linéaires. Elles correspondent au modèle de mouvement et au modèle d'observation du robot. Les matrices $G$ et $H$ correspondent à la décomposition de Taylor du premier ordre des fonctions $g$ et $h$. Cette décomposition de Taylor permet de rendre linéaires les fonctions $g$ et $h$. EKF applique ces fonctions linéaires sur le calcul de la matrice de variance. Il est donc maintenant possible de passer en paramètres un modèle de mouvement non linéaire et un modèle d'observation non linéaire en gardant une représentation gaussienne de la position du robot.  Contrairement au filtre de Kalman classique où les modèles sont obligatoirement linéaires pour préserver des fonctions de répartition gaussienne. 
 
-L'algorithme ~\ref{alg:EKFLocalisation} décrit l'algorithme de Kalman appliqué à la localisation de notre robot. Le robot utilise une carte composé de repère (comme défini dans le section ~\ref{section:carteRepères} ) pour se localisé. Cette carte est passé en paramètre en plus des paramètres classique de l'algorithme de Kalman. 
+Cette décomposition de Taylor n'ajoute pas de complexité à l'algorithme. En effet, cette décomposition est faite analytiquement au préalable. Cependant, la linéarisation implique que l'algorithme EKF retourne une approximation de la fonction $bel$ associée au modèle de mouvement et d'observation non linéaires.  La figure~\ref{img:EKFlinearisation} représente la linéarisation de la fonction $g$. On voit clairement que si la fonction $g$ est appliquée sans linéarisation sur l'ensemble de la croyance,  la croyance n'est plus une gaussienne. On peut également voir que la gaussienne construite à l'aide de la linéarisation correspond à une approximation de la vraie gaussienne. Dans le cas d'un modèle de mouvement linéaire et un modèle d'observation linéaire, l'algorithme EKF fournit les mêmes résultats que l'algorithme KF. 
+
+\begin{figure}
+\begin{center}
+\includegraphics{./../img/ekf_linearisation.png}
+\caption{EKF linéarisation }
+\source{Probabilistic Robotics\cite{Thrun:2005:PR:1121596}}
+\label{img:EKFlinearisation}
+\end{center}
+\end{figure}
 
 
+L'algorithme ~\ref{alg:EKFLocalisation} décrit l'algorithme EKF appliqué à la localisation de notre robot. Le robot utilise une carte composée de repères (comme défini dans la section ~\ref{section:carteRepères} ) pour se localiser. Cette carte est passée en paramètre en plus des paramètres classiques de l'algorithme EKF. Cette version de l'EKF localisation permet d'intégrer plusieurs observations au temps $t$ grâce à la boucle qui itère sur chaque observation. Le modèle de mouvement et le modèle d'observation correspondent à ceux définis dans la section \ref{sec:ModeleMovObser}. La fonction $g$ qui correspond au modèle de mouvement est définie comme suit : 
+$$ g = \mu_{t-1} + 
+\begin{pmatrix}
+d_t \cos(\theta_{t-1} + \gamma_t) \\
+d_t \sin(\theta_{t-1} + \gamma_t) \\
+ \gamma_t \\
+\end{pmatrix}
+$$ 
+Le développement de Taylor du premier ordre de la fonction $g$ en $\mu_{t-1}$ est donné par la matrice $G$ qui est définie comme suit : 
+
+$$
+G =
+\begin{pmatrix}
+\frac{ \partial x'}{ \partial \mu_{t-1,x} } & \frac{ \partial x'}{ \partial \mu_{t-1,y} }& \frac{ \partial x'}{ \partial \mu_{t-1, \theta} } \\
+ \frac{ \partial y'}{ \partial \mu_{t-1,x} } &  \frac{ \partial y'}{ \partial \mu_{t-1,y} }&  \frac{ \partial y'}{ \partial \mu_{t-1,\theta} } \\
+ \frac{ \partial \theta'}{ \partial \mu_{t-1,x} } &\frac{ \partial \theta'}{ \partial \mu_{t-1,y} }  & \frac{ \partial \theta'}{ \partial \mu_{t-1,\theta} } 
+\end{pmatrix}=
+\begin{pmatrix}
+1&0& -d_t \sin( \theta_{t-1}  + \gamma_t)\\
+0&1&d_t\cos(\theta_{t-1}  + \gamma_t)\\
+0&0&1\\
+\end{pmatrix}
+$$
+la fonction $h$ qui correspond au modèle d'observation est définie comme suit : 
+$$
+h = \begin{pmatrix}
+\sqrt{ (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2}\\
+atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu_{t,\theta}}\\
+\end{pmatrix}
+$$
+où $m_{j,x},m_{j,x}$ correspondent aux coordonnées du repère enregistrées dans la carte. Le développement de Taylor du premier ordre de la fonction $h$ en $\bar{\mu}_{t}$ est donné par la matrice $H$ qui est définie comme suit : 
+$$
+H = 
+\begin{pmatrix}
+\frac{\partial d^i_t}{\partial \bar{\mu}_{t,x}} & \frac{\partial d^i_t}{\partial \bar{\mu}_{t,y}} & \frac{\partial d^i_t}{\partial \bar{\mu}_{t,\theta}} \\
+\frac{\partial \rho^i_t}{\partial \bar{\mu}_{t,x}} & \frac{\partial \rho^i_t}{\partial \bar{\mu}_{t,y}} & \frac{\partial \rho^i_t}{\partial \bar{\mu}_{t,\theta}}
+\end{pmatrix}
+=
+ \begin{pmatrix}
+-\frac{m_{j,x}-\overline{\mu}_{t,x}}{\sqrt{q}}     &    -\frac{m_{j,y}-\overline{\mu}_{t,y}}{\sqrt{q}}   &    0\\
+\frac{m_{j,y}-\overline{\mu}_{t,y}}{q} & -\frac{m_{j,x}-\overline{\mu}_{t,x}}{q}            &  -1\\
+
+\end{pmatrix}
+$$
+
+Pour pouvoir intégrer l'erreur de mouvement dans l'espace de position du robot il est nécessaire de l'exprimer dans les mêmes variables que la position du robot. En effet, le vecteur de position du robot est exprimé en $(x,y,\theta)$ or l'erreur de contrôle est exprimée sur les variables $(d, \gamma) $. La matrice $V_t$ correspond au développement de Taylor du premier ordre en $\mu_{t-1}$. Elle est définie comme suit : 
+$$
+V_t = 
+\begin{pmatrix}
+\frac{\partial x ' }{\partial d_t } && \frac{\partial x ' }{\partial \gamma_t }  \\
+\frac{\partial y ' }{\partial d_t } && \frac{\partial y ' }{\partial \gamma_t } \\
+\frac{\partial \theta ' }{\partial d_t } && \frac{\partial \theta ' }{\partial \gamma_t } 
+\end{pmatrix}
+=
+\begin{pmatrix}
+\cos(\theta_{t-1} + \gamma_t) & -d \sin(\theta_{t-1} + \gamma_t)\\
+\sin(\theta_{t-1}  + \gamma_t)& d_t \cos(\theta_{t-1} + \gamma_t) \\
+0&1\\
+\end{pmatrix}
+$$
+La formule suivante permet d'exprimer l'approximation de l'erreur des commandes dans les mêmes variables que le vecteur de position du robot. 
+$$
+R_t= V_tM_tV_t^T
+$$
 
 \begin{algorithm}
 \caption{ EKF  localisation  }\label{alg:EKFLocalisation}
@@ -273,8 +349,8 @@ $
 $
 \State $M_t \gets 
 \begin{pmatrix}
-\sigma^2 &0\\
-0&\sigma^2 \\ 
+\sigma^2_{d_t} &0\\
+0&\sigma^2_{\gamma_t} \\ 
 \end{pmatrix}
 $
 
@@ -296,12 +372,12 @@ $ \Comment{prédiction}
 
 \ForAll{ observed features   {$ z^i_t \gets (d^i_t,\rho^i_t)^T $ }}
 \State $j\gets$ landmark observed
-\State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$
+\State $q \gets (m_{j,x}-\overline{\mu}_{t,x} )^2 + (m_{j,y}-\overline{\mu}_{t,y})^2$ \Comment{$m_{j,x} m_{j,y}$  coordonnées du repère }
 \State $ \hat{z}^i_t \gets 
 \begin{pmatrix}
 \sqrt{q}\\
-atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu_{t,\theta}}\\
-\end{pmatrix}
+atan2(m_{j,y}-\overline{\mu}_{t,y},m_{j,x}-\overline{\mu}_{t,x} )- \overline{\mu}_{t,\theta}\\
+\end{pmatrix} 
 $
 \State $H^i_t \gets
 \begin{pmatrix}
@@ -332,11 +408,11 @@ $
 
 
 \subsection{Algorithme non paramétrique(MCL) }
-À l'inverse des algorithmes paramétriques, les algorithmes non paramétriques ne sont pas basés sur une loi de probabilité connue dont l'algorithme arrange les paramètres pour correspondre au mieux à la croyance de la position. Dans les algorithmes non paramétriques, la croyance est représentée par nombre déterminé de positions supposées. Une probabilité est associée à ces positions supposées. Plusieurs techniques existent pour représenter ses positions supposées. 
+À l'inverse des algorithmes paramétriques, les algorithmes non paramétriques ne sont pas basés sur une loi de probabilité connue dont l'algorithme arrange les paramètres pour correspondre au mieux à la croyance de la position. Dans les algorithmes non paramétriques, la croyance est représentée par  un nombre déterminé de positions supposées. Une probabilité est associée à ces positions supposées. Plusieurs techniques existent pour représenter ses positions supposées. 
 
-La première technique consiste à découper la carte de l'environnement en une grille où chaque élément de la grille correspond à une position supposée\cite{4621305}. Pour représenter l'orientation du robot, il faut multiplier le nombre de cases par le nombre d'angles d'orientation que peut prendre le robot (voir la figure ~\ref{img:gridMap}). Dans cette représentation, seules trois orientations sont possibles. Ces trois orientations correspondent aux trois plans de la représentation. Comme on peut s'en rendre compte, il est très important de définir la bonne granularité de la découpe. Une découpe trop importante augmente le temps de calcul, alors qu'une grille trop peu découpée rend la localisation trop peu précise. Dans ce type de découpe, plus la carte est grande et plus le temps de calcul est important. 
+La première technique consiste à découper la carte de l'environnement en une grille où chaque élément de la grille correspond aux coordonnées supposées du robot~\cite{4621305}. Pour représenter l'orientation du robot, il faut multiplier le nombre de cases par le nombre d'angles d'orientation que peut prendre le robot (voir la figure~\ref{img:gridMap}). Dans cette représentation, seules trois orientations sont possibles. Ces trois orientations correspondent aux trois plans de la représentation. Comme on peut s'en rendre compte, il est très important de définir la bonne granularité de la découpe. Une découpe trop importante augmente le temps de calcul, alors qu'une grille trop peu découpée rend la localisation trop peu précise. Dans ce type de découpe, plus la carte est grande et plus le temps de calcul est important. 
 
-Dans le cas de l'algorithme de Monte Carlo localization (MCL) aussi appelé Particle filter localization\cite{bib:Rekleitis2004}  car il utilise un filtre à particule, une approche différente a été choisie. Dans cet algorithme (voir l'algorithme ~\ref{alg:MCL }) la croyance de la position est représentée par M particules(voir la figure ~\ref{img:MCL}). Chaque particule est considérée comme une hypothèse sur la position du robot. Les traits gris correspondent aux particules et le niveau de rouge représente la probabilité associée. Plus une région de la carte contient de particules avec une probabilité haute associée et plus la probabilité que le robot s'y trouve est grande. Contrairement aux algorithmes basés sur la découpe de la carte en une grille, MCL n'implique pas un temps de calcul supplémentaire lorsque la taille de la carte augmente. Cependant, il est possible de choisir d'augmenter le nombre de particules pour augmenter la précision. 
+Dans le cas de l'algorithme de Monte Carlo localization (MCL) aussi appelé particle filter localization\cite{bib:Rekleitis2004}  car il utilise un filtre à particules, une approche différente a été choisie. Dans cet algorithme (voir l'algorithme ~\ref{alg:MCL }) la croyance de la position est représentée par $M$ particules (voir la figure ~\ref{img:MCL}). Chaque particule est considérée comme une hypothèse sur la position du robot. Les traits gris correspondent aux particules et le niveau de rouge représente la probabilité associée. Plus une région de la carte contient de particules avec une probabilité haute associée et plus la probabilité que le robot s'y trouve est grande. L'algorithme est composé de l'étape de prédiction et de l'étape de mise à jour comme l'algorithme de Markov. Pour chaque particule ces deux étapes sont appliquées. L'étape de prédiction applique le mouvement à chaque particule. L'étape de mise à jour détermine une valeur en fonction de la probabilité d'avoir une telle observation en étant à la position de la particule. Une fois ces deux étapes appliquées à chaque particule, la partie finale consiste à redéfinir l'ensemble des particules. Le nouvel ensemble est construit avec les particules qui ont la plus grande probabilité associée à l'étape précédente. Contrairement aux algorithmes basés sur la découpe de la carte en une grille, MCL n'implique pas un temps de calcul supplémentaire lorsque la taille de la carte augmente. Cependant, il est possible de choisir d'augmenter le nombre de particules pour augmenter la précision. 
 
 MCL souffre d'un problème important, en particulier quand $M< 50$ et que l'environnement du robot est grand. Il peut arriver que l'ensemble des particules converge vers une position erronée. Une fois cette convergence atteinte il est difficile d'en sortir. Pour pallier à ce problème, à chaque itération un certain nombre de particules sont redistribuées aléatoirement dans la carte. 
 
@@ -372,8 +448,8 @@ MCL souffre d'un problème important, en particulier quand $M< 50$ et que l'envir
 \State $ \mathcal{X}_t \gets  \emptyset $  
 
 \For {$ m = 1$ to  M }
-\State  $ x^{[m]}_t \gets sample\_motion\_model(u_t , x^{[m]}_{t-1})$
-\State $w_t^{[m]} \gets measurement\_model(z_t , x_t^{[m]},m)$
+\State  $ x^{[m]}_t \gets sample\_motion\_model(u_t , x^{[m]}_{t-1})$ \Comment{prédiction}
+\State $w_t^{[m]} \gets measurement\_model(z_t , x_t^{[m]},m)$ \Comment{mise à jour}
 \State $ \overline{\mathcal{X}}_t \gets \overline{\mathcal{X}}_t + \langle  x^{[m]}_t , w_t^{[m]} \rangle $
 \EndFor
 
@@ -388,14 +464,14 @@ MCL souffre d'un problème important, en particulier quand $M< 50$ et que l'envir
 
 
 \subsection{Comparaison de MCL et EKF}
-Le tableau ~\ref{MCLVSEKF} donne et compare les principales caractéristiques de l'algorithme EKF et MCL. Ce tableau comparatif permet de mettre en valeur qu'aucun algorithme n'est globalement meilleur. Ils possèdent chacun leurs qualités et défauts. Les défauts de l'un se révèlent les qualités de l'autre. Par exemple, EKF est efficient en temps et mémoire contrairement au MCL dont l'efficience dépend fortement du nombre de particules. 
+Le tableau ~\ref{MCLVSEKF} donne et compare les principales caractéristiques de l'algorithme EKF et MCL. Ce tableau comparatif permet de mettre en valeur qu'aucun algorithme n'est globalement meilleur. Ils possèdent chacun leurs qualités et défauts. Les défauts de l'un se révèlent être les qualités de l'autre. Par exemple, EKF est efficient en temps et mémoire contrairement au MCL dont l'efficience dépend fortement du nombre de particules. 
 
-Cependant, MCL est plus robuste que EKF. En effet, la représentation de la fonction de probabilité à l'aide d'une loi normale permet à EKF d'être efficient. Cependant, le revers de cette efficience est qu'il est moins robuste lorsque la fonction de probabilité est fortement différente d'une loi normale. Prenons l'exemple d'un long couloir avec un grand nombre de portes et où le robot n'est pas capable de distinguer les portes. Dans cette situation MCL peut donner de meilleures performances. En effet, EKF assume que la croyance de la position est proche d'une distribution gaussienne et a donc de mauvaises performances lorsque la croyance correspond plutôt à distribution multimodale. Pour pallier à ce problème, l'algorithme classique EKF a été amélioré. Multi-hypothesis tracking (MHT)\cite{1263228} filtre permet de représenter la croyance à l'aide d'un mixte de plusieurs gaussienne et donc d'avoir un algorithme plus robuste et efficient. Le même type de problème se présente pour la représentation de l'erreur de mesure. Dans le cas de MCL, cette erreur de mesure ne doit pas obligatoirement suivre une gaussienne contrairement à EKF. MCL permet de représenter l'erreur de mesure par une fonction quelconque ce qui permet de s'approcher plus facilement de la réalité physique.  
+Cependant, MCL est plus robuste qu' EKF. En effet, la représentation de la fonction de probabilité à l'aide d'une loi normale permet à EKF d'être efficient. Cependant, le revers de cette efficience est qu'il est moins robuste lorsque la fonction de probabilité est fortement différente d'une loi normale. Prenons l'exemple d'un long couloir avec un grand nombre de portes et où le robot n'est pas capable de distinguer les portes. Dans cette situation, MCL peut donner de meilleures performances. En effet, EKF assume que la croyance de la position est proche d'une distribution gaussienne et a donc de mauvaises performances lorsque la croyance correspond plutôt à une distribution multimodale. Pour pallier à ce problème, l'algorithme classique EKF a été amélioré. Multi-hypothesis tracking (MHT)\cite{1263228} filtre permet de représenter la croyance à l'aide d'un mixte de plusieurs gaussiennes et donc d'avoir un algorithme plus robuste et efficient. Le même type de problème se présente pour la représentation de l'erreur de mesure. Dans le cas de MCL, cette erreur de mesure ne doit pas obligatoirement suivre une gaussienne contrairement à EKF. MCL permet de représenter l'erreur de mesure par une fonction quelconque ce qui permet de s'approcher plus facilement de la réalité physique.  
 
-La localisation globale correspond à un problème de localisation où la position initiale n'est pas connue et l'incertitude est donc grande à cet instant. Il s'avère qu' EKF est plus approprié pour suivre la position d'un robot dont on connait déjà la position initiale. En effet, une représentation unimodale est généralement une bonne représentation dans un problème où il s'agit de suivre une position, mais pas dans un problème de localisation globale. La linéarisation dans EKF ne fait qu'accroitre ce problème en risquant de converger vers une mauvaise position.
+La localisation globale correspond à un problème de localisation où la position initiale n'est pas connue. L'incertitude est donc grande à cet instant. Il s'avère qu' EKF est plus approprié pour suivre la position d'un robot dont on connait déjà la position initiale. En effet, une représentation unimodale est généralement une bonne représentation dans un problème où il s'agit de suivre une position, mais pas dans un problème de localisation globale. La linéarisation dans EKF ne fait qu'accroitre ce problème en risquant de converger vers une mauvaise position.
 
 
-De plus, MCL permet de traiter directement dans l'algorithme des mesures brutes or EKF nécessite des repères. Il est donc possible à l'aide de MCL d'utiliser directement les valeurs de capteurs de distance entre le robot et des murs pour les comparer avec une carte représentant les murs. Ce qui n'est pas possible à l'aide de EKF qui nécessite une carte composée d'un nombre limité de repères qui permet de localiser le robot à l'aide des repères mesurés dans son environnement. Finalement, en pratique il s'avère que MCL est plus simple à implémenter qu'EKF.
+De plus, MCL permet de traiter directement dans l'algorithme des mesures brutes or EKF nécessite des repères. Déterminer un repère nécessite un prétraitement des données brutes. Il est donc possible à l'aide de MCL d'utiliser directement les valeurs de capteurs de distance entre le robot et des murs pour les comparer avec une carte représentant les murs. Ce qui n'est pas possible à l'aide d'EKF qui nécessite une carte composée d'un nombre limité de repères qui permet de localiser le robot à l'aide des repères mesurés dans son environnement. Finalement, en pratique il s'avère que MCL est plus simple à implémenter qu'EKF.
 
 
 \begin{table}
@@ -404,7 +480,7 @@ De plus, MCL permet de traiter directement dans l'algorithme des mesures brutes 
 \begin{tabular}{l | c | c }
                & EKF & MCL \\
                \hline
-Mesures & Repères & Brute \\ 
+Mesures & Repères & Brutes \\ 
 Erreur de Mesure & Gaussienne & Toute \\
 Posterior &Gaussienne & Particules \\
 Efficience(mémoire) & ++ & + \\
@@ -422,13 +498,25 @@ Localisation Globale & non & oui\\
 
 
 \chapter{Simultaneous Localization And Mapping}
-Les algorithmes de type Slam (Simultaneous Localization And Mapping) sont l'étape suivante de l'indépendance des robots. En effet, dans les algorithmes de simple localisation, la carte de l'environnement doit être construite avant de la passer en paramètre aux algorithmes de localisation. Comme son nom l'indique, dans un algorithme Slam la carte est construite en parallèle avec la localisation du robot. La section suivante présente l'EKF SLAM qui est l'extension de l'EKF localisation. Le FastSlam est un autre algorithme SLAM connu qui est l'extension du MCL. Les particles dans le FastSlam sont composée d'une estimation du chemin du robot et de l'ensemble des estimations des points de repères de la carte avec leur covariance associée. La description détaillée de cette algorithmes est disponibles dans le livre «Probabilistic robotics»\cite{Thrun:2005:PR:1121596}     
+Les algorithmes de type Slam (Simultaneous Localization And Mapping) sont l'étape suivante vers l'indépendance des robots. En effet, dans les algorithmes de simple localisation, la carte de l'environnement doit être construite avant de la passer en paramètre aux algorithmes de localisation. Comme son nom l'indique, dans un algorithme Slam la carte est construite en parallèle avec la localisation du robot. La section suivante présente l'EKF SLAM qui est l'extension de l'EKF localisation. Le FastSlam est un autre algorithme SLAM connu qui est l'extension du MCL. Les particules dans le FastSlam sont composées d'une estimation du chemin du robot et de l'ensemble des estimations des points de repère de la carte avec leur covariance associée. La description détaillée de cet algorithme est disponible dans le livre «Probabilistic robotics»\cite{Thrun:2005:PR:1121596}     
 
 \section{EKF SLAM}
-EKF SLAM est un algorithme SLAM et comme sont nom le laisser penser est basé sur l'algorithme de localisation EKF. Il utilise également une gaussienne pour représenter son état. Cependant l'état contient à l'instant $t$ en plus de la pose du robot, la carte qui est représentées comme l'ensemble des poses des repères découvert à l'instant $t$. Cet algorithme est aussi découpé en deux étapes important, l'étape de prédiction ainsi que l'état de correction. Dans l'état de prédiction la fonction de mouvement n'influence pas les valeurs de la moyenne des poses des repères. Ce qui est normal car les repères ne bougent pas même si le robot change de position.   
+EKF SLAM est un algorithme SLAM(voir algorithme~\ref{alg:EKFSLAM}) et comme son nom le laisse penser il est basé sur l'algorithme de localisation EKF. Il utilise également une gaussienne pour représenter son état. Cependant, l'état contient à l'instant $t$ en plus de la pose du robot, la carte qui est représentée comme l'ensemble des poses des repères découverts à l'instant $t$. Cet algorithme est aussi découpé en deux étapes importantes, l'étape de prédiction ainsi que l'état de correction. Dans l'état de prédiction, la fonction de mouvement n'influence pas les valeurs de la moyenne des poses des repères. Ce qui est normal, car les repères ne bougent pas même si le robot change de position. Dans l'étape de mise à jour, lorsqu'un repère est découvert pour la première fois il est initialisé à l'aide de la position du robot, de la distance et de l'angle auxquels il a été observé. La figure ~\ref{img:EKFSLAM} présente le parcourt d'un robot qui applique l'EKF SLAM. Les petits points représentent les repères qui sont dans l'environnement du robot. Lorsque le robot observe un point de repère, l'ellipse représentant la covariance associée à ce repère est représentée sur le dessin. Plus la position du robot est incertaine et plus la position des repères qu'il va découvrir est également incertaine. Finalement, lorsque le robot scanne un repère qu'il a déjà analysé, l'ensemble des covariances des repères déjà observés sont mises à jour.  
+
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/ekf_slam.png}
+\caption{EKF SLAM}
+\source{Probabilistic Robotics\cite{Thrun:2005:PR:1121596}}
+\label{img:EKFSLAM}
+\end{center}
+\end{figure}
+
 
 \begin{algorithm}
-\caption{ EKF SLAM  }\label{alg:EKFSLAM }
+\caption{ EKF SLAM  }\label{alg:EKFSLAM}
 \begin{algorithmic}[1]
 \Procedure{EKF SLAM }{$ \mu_{t-1}, \Sigma_{t-1},  u_t , z_t, m $}  
 \State $\theta_{t-1} \gets \mu_{t-1,\theta } $
@@ -438,9 +526,9 @@ EKF SLAM est un algorithme SLAM et comme sont nom le laisser penser est basé sur
 0&1&0&0  \ldots 0\\
 0&0&1&\underbrace{0  \ldots 0}\\
   &  &  & 2N
-\end{pmatrix}
+\end{pmatrix} 
 $
-
+\Comment{N = nombre de repères}
 
 \State $\overline{\mu}_t \gets \mu_{t-1} +  F^T_x
 \begin{pmatrix}
@@ -606,9 +694,9 @@ L'algorithme ~\ref{alg:Dijkstra}  correspond au pseudocode de l'algorithme de Di
 
 
 \section{A star}
-L'algorithme A star a été publié en 1968~\cite{AICPub834}  et fonctionne de façon relativement semblable à l'algorithme de Dijkstra, mais celui-ci permet d'obtenir de meilleure performance que Dijksta grâce à l'utilisation d'une heuristique. Cette heuristique donne une estimation du cout jusqu'aux destinations recherchées. Pour appliquer A star son heuristique doit être admissible c'est-à-dire que la fonction heuristique ne doit jamais surestimer la valeur réelle du cout. Dans la recherche du plus court chemin valide de notre robot, l'heuristique représente la distance à vole d'oiseau qui est toujours plus courte ou égale à n'importe quel chemin. L'algorithme ~\ref{alg:AStar} correspond au pseudocode de l'algorithme A star. L'algorithme A star comme celui de Dijkstra est découpé en deux parties principales qui consistent dans la première partie à déterminer les plus courts chemins entre un sommet initial et les autres sommets, suivi de la reconstruction du chemin entre le sommet d'arrivée et le sommet de départ. 
+L'algorithme A star a été publié en 1968~\cite{AICPub834}  et fonctionne de façon relativement semblable à l'algorithme de Dijkstra, mais celui-ci permet d'obtenir de meilleure performance que Dijksta grâce à l'utilisation d'une heuristique. Cette heuristique donne une estimation du cout jusqu'aux destinations recherchées. Pour appliquer A star son heuristique doit être admissible. C'est-à-dire que la fonction heuristique ne doit jamais surestimer la valeur réelle du cout. Dans la recherche du plus court chemin valide de notre robot, l'heuristique représente la distance à vole d'oiseau qui est toujours plus courte ou égale à n'importe quel chemin. L'algorithme ~\ref{alg:AStar} correspond au pseudocode de l'algorithme A star. L'algorithme A star comme celui de Dijkstra est découpé en deux parties principales qui consistent dans la première partie à déterminer les plus courts chemins entre un sommet initial et les autres sommets, suivi de la reconstruction du chemin entre le sommet d'arrivée et le sommet de départ. 
 
-Intuitivement l'algorithme A star composé de l'heuristique estimant la distance à vole d'oiseau explore itérativement le noeud joignable et étant estimés par l'heuristique comme le plus proche du noeud cible. Lorsque ce noeud est choisi, ces voisins deviennent joignables et l'heuristique estime la distance entre ses voisins et le noeud cible. Et ce itérativement jusqu'au noeud cible. Dans un labyrinthe cet algorithme peut avoir des performances moins bonnes. La figure \ref{AstarLab} illustre cette situation. Il est clair qu' à vol d'oiseau le noeud à gauche du départ est le chemin unique et le plus court pour atteindre l'arrivée. Cependant l'algorithme A star, va commencer par explorer les noeuds à droite du départ pour arriver jusqu'au cul-de-sac et finalement explorer le noeud à gauche du départ. Cependant, l'algorithme fini toujours par retourner le chemin le plus court.     
+Intuitivement, l'algorithme A star composé de l'heuristique estimant la distance à vole d'oiseau explore itérativement le noeud joignable et étant estimés par l'heuristique comme le plus proche du noeud cible. Lorsque ce noeud est choisi, ces voisins deviennent joignables et l'heuristique estime la distance entre ses voisins et le noeud cible. Et ce itérativement jusqu'au noeud cible. Dans un labyrinthe cet algorithme peut avoir des performances moins bonnes. La figure \ref{AstarLab} illustre cette situation. Il est clair qu' à vol d'oiseau le noeud à gauche du départ est le chemin unique et le plus court pour atteindre l'arrivée. Cependant l'algorithme A star, va commencer par explorer les noeuds à droite du départ pour arriver jusqu'au cul-de-sac et finalement explorer le noeud à gauche du départ. Cependant, l'algorithme finit toujours par retourner le chemin le plus court.     
 
 
 \begin{figure}
