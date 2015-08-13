@@ -8,25 +8,25 @@ Cette section contient la description de l'implémentation de l'algorithme EKF ré
 
 \subsection{Odométrie}
 \label{sec:Odometrie}
-L'odométrie permet de déterminer les mouvements $u_t$ nécessaires à l'étape de prédiction de chaque itération de l'algorithme EKF. Pour déterminer le mouvement $u_t$ l'odométrie consiste à compter le nombre de rotations des moteurs.  Elle y associe le mouvement correspondant en fonction du châssis du robot. Il est nécessaire de connaitre la taille des roues ainsi que leur écartement pour déterminer le mouvement en fonction du nombre de tours des moteurs. Dans le cas d'un robot «Differential wheeled» les formules sont les  suivantes : 
+L'odométrie permet de déterminer les mouvements $u_t$ nécessaires à l'étape de prédiction de chaque itération de l'algorithme EKF. Pour déterminer le mouvement $u_t$ l'odométrie consiste à compter le nombre de rotations des moteurs.  Elle y associe le mouvement correspondant en fonction du châssis du robot. Il est nécessaire de connaitre la taille des roues ainsi que leur écartement pour déterminer le mouvement en fonction du nombre de tours des moteurs. Dans le cas d'un robot «~Differential wheeled~» les formules sont les  suivantes~: 
 $$
-d =   \frac{d_1 + d_2}{2}
+d =   \frac{d_d + d_g}{2}
 $$
 $$
-\gamma =\frac{d_1-d_2}{b}
+\gamma =\frac{d_d-d_g}{b}
 $$
 
-où $d$ représente la distance parcourue par le robot et $\gamma$ l'angle de rotation. $d_1 $ et $d_2$ correspondent respectivement à la distance parcourue par les roues une et deux. Finalement, $b$ correspond à l'écart entre les deux roues. $d_1$ et $d_2$ sont calculées en multipliant le nombre de tours des moteurs par la circonférence de la roue. La formule est la suivante :    
-$$d_1 = 2*\pi R_1* RotationMoteur_1$$ 
-où $R_{1}$ est le rayon de la roue une. Les mouvements $u_t$ doivent être soit des lignes droites soit des rotations sur soi-même. Cela permet d'appliquer le modèle de mouvement. Pour rappel, le modèle de mouvement est construit avec une première rotation suivie d'un mouvement en ligne droite. Cette représentation n'est pas restrictive. En effet, il est possible de découper la trajectoire en un ensemble de sous mouvements qui sont des lignes droites ou des rotations. 
+où $d$ représente la distance parcourue par le robot et $\gamma$ l'angle de rotation. $d_d $ et $d_g$ correspondent respectivement à la distance parcourue par la roue droite et par la roue gauche. Finalement, $b$ correspond à l'écart entre les deux roues. $d_d$ et $d_g$ sont calculées en multipliant le nombre de tours des moteurs par la circonférence de la roue. La formule pour calculer $d_g$ est la suivante et celle pour calculer $d_d$ est similaire en adaptant les variables~:    
+$$d_g = 2*\pi *R_g* RotationMoteur_g$$ 
+où $R_{g}$ est le rayon de la roue gauche. Les mouvements $u_t$ doivent être soit des lignes droites soit des rotations sur soi-même. Cela permet d'appliquer le modèle de mouvement. Pour rappel, le modèle de mouvement est construit avec une première rotation suivie d'un mouvement en ligne droite. Cette représentation n'est pas restrictive. En effet, il est possible de découper la trajectoire en un ensemble de sous mouvements qui sont des lignes droites ou des rotations. 
 
-Ces formules sont vraies pour les robots «Differential wheeled». Si des robots ont un plus grand nombre de roues ou si elles ne sont pas placées de façon opposée, il est nécessaire d'adapter ces formules. Dans le cas d'une plateforme de type «~steering~», qui rappelons-le est semblable aux voitures classiques, il y a un moteur unique. Il est donc nécessaire de connaitre l'orientation des roues pour déterminer les rotations.  
+Ces formules sont vraies pour les robots «~Differential wheeled~». Si des robots ont un plus grand nombre de roues ou si elles ne sont pas placées de façon opposée, il est nécessaire d'adapter ces formules. Dans le cas d'une plateforme de type «~steering~», qui rappelons-le est semblable aux voitures classiques, il y a un moteur unique. Il est donc nécessaire de connaitre l'orientation des roues pour déterminer les rotations.  
 
 \subsection{Détection de repères}
 \label{sec:Detection de Feature avec la camera du smartphone}
 
-Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : \href{http://zbar.sourceforge.net/}{zbar.sourceforge.net}} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smartphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire : un carré de 10 cm de côté ). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10cm de côté (voir~\ref{EDQRC}). La formule est la suivante : 
-$$Distance =  \frac{\frac{ResolutionHorizontale }{MesurePixelsHorizontale} * LargeurCodeQR}  {2*\tan(\alpha)} $$
+Les codes QR sont des éléments faciles à identifier pour la caméra d'un smartphone. De nombreuses librairies de qualité ont déjà été développées pour détecter et décoder des codes QR. Zbar \footnote{ Zbar : \href{http://zbar.sourceforge.net/}{zbar.sourceforge.net}} est une de ces librairies open source. Elle est disponible sur Android et  IOS.  Pour ce mémoire, une application permettant d'estimer la distance du smartphone au code QR a été développée à l'aide de la librairie Zbar. Pour pouvoir utiliser les codes QR pour estimer la distance entre eux et le smartphone, les codes QR doivent être d'une dimension donnée (dans ce mémoire~: un carré de 10 cm de côté). La librairie Zbar renvoie la dimension du code QR en nombre de pixels captés par la caméra. À l'aide d'un étalonnage de la caméra qui consiste à déterminer l'ouverture de l'objectif et du calcul trigonométrique suivant, il est possible de déterminer la distance des codes QR de 10 cm de côté (voir~\ref{EDQRC}). La formule est la suivante~: 
+$$Distance =  \frac{\frac{ResolutionHorizontale }{TailleCodeQRPixelsHorizontale} * LargeurCodeQR}  {2*\tan(\alpha)} $$
 
 
 \begin{figure}
@@ -37,10 +37,10 @@ $$Distance =  \frac{\frac{ResolutionHorizontale }{MesurePixelsHorizontale} * Lar
 \label{EDQRC}
 \end{figure}
 
-Il est également possible de déterminer l'angle entre la direction du robot et le centre du code QR à l'aide de la formule suivante : 
+Il est également possible de déterminer l'angle entre la direction du robot et le centre du code QR.  Si le code QR se trouve à gauche du robot, la formule est la suivante et $\rho$ est positif~: 
 
 $$\rho = \alpha-\frac{\alpha * 2*CentreCodeQRPixels}{ ResolutionHorizontale} $$
-si le code QR se trouve à droite du robot la formule devient :
+si le code QR se trouve à droite du robot, la formule devient et $\rho$ est négatif:
 $$\rho = \frac{\alpha * 2*CentreCodeQRPixels}{ ResolutionHorizontale}-\alpha $$
 
 L'étalonnage consiste à déterminer $\alpha $ à l'aide de mesures faites à distance connue. Cet angle $\alpha$  a de fortes chances d'être différent d'un capteur d'image à l'autre. Il est donc primordial de faire ces mesures d'étalonnage lors de la première utilisation du nouveau capteur d'images.  
@@ -66,17 +66,16 @@ En plus, de ces deux cartes qui ont été générées à la main au préalable, une car
 
 \subsection{Implémentation EKF}
 
-Les sections~\ref{sec:Odometrie},~\ref{sec:Detection de Feature avec la camera du smartphone},~\ref{sec:cartes} ont permis de définir l'ensemble des paramètres nécessaires à l'utilisation de l'implémentation de l'algorithme EKF de ce mémoire. Cette implémentation suit le pseudocode de l'algorithme EKF présenté dans la section~\ref{sec:Algorithme paramétrique(EKF)}. L'implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : \href{http://commons.apache.org/proper/commons-math/}{commons.apache.org/proper/commons-math}} qui est une librairie mathématique open-source d'Apache. Celle-ci contient une série de classes qui permettent de manipuler et d'appliquer des opérations sur des matrices. Ceci se révèle très utile dans les algorithmes de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation de l'Extended Kalman Filter. C'est donc cette librairie qui a été utilisée pour implémenter l'algorithme EKF. 
-
+Les sections~\ref{sec:Odometrie},~\ref{sec:Detection de Feature avec la camera du smartphone},~\ref{sec:cartes} ont permis de définir l'ensemble des paramètres nécessaires à l'utilisation de l'implémentation de l'algorithme EKF de ce mémoire. Cette implémentation suit le pseudocode de l'algorithme EKF présenté dans la section~\ref{sec:Algorithme paramétrique(EKF)}. L'implémentation d'EKF complète la librairie Commons Math\footnote{Commons Math : \href{http://commons.apache.org/proper/commons-math/}{commons.apache.org/proper/commons-math}} qui est une librairie mathématique open-source d'Apache. Celle-ci contient une série de classes qui permettent de manipuler et d'appliquer des opérations sur des matrices. Celles-ci se révèlent très utiles dans l'implémentation de l'algorithme de Kalman. Elle contient également une implémentation du filtre de Kalman, mais ne contient pas d'implémentation de l'Extended Kalman Filter. C'est donc cette librairie qui a été utilisée pour implémenter l'algorithme EKF. L'ensemble des codes source implémentés et des adaptations des différentes librairies sont versionnés à l'aide de Git. Il est donc facile de déterminer les ajouts et les modifications utiles à ce mémoire. 
 \subsection{Matrice de covariance}
 \label{sectionCovariance}
-La matrice de covariance est comme son nom l'indique une matrice qui permet de représenter la covariance entre chaque variable de la pose du robot. Les valeurs contenues dans cette matrice sont très utiles, mais restent fastidieuses à lire, car cette matrice change dynamiquement et régulièrement. Il a donc été important d'implémenter une représentation graphique des informations importantes de cette matrice de covariance. Cette représentation permet de se faire une idée rapide de ces valeurs, sans devoir les analyser une à une. La figure~\ref{cov} présente la représentation choisie de la covariance. La moyenne $\mu_t$ donne la pose estimée du robot. Cette pose estimée est représentée par le point bleu central qui correspond à la position $x,y$ estimée du robot et la droite bleue au milieu des deux autres correspond à la direction estimée du robot. L'ellipse autour de la pose ainsi que les deux autres droites permettent de représenter la matrice de covariance. Voici la définition de la covariance pour mieux comprendre ce que représente la covariance et comprendre comment sont construites cette ellipse et ces droites  : 
+La matrice de covariance est comme son nom l'indique une matrice qui permet de représenter la covariance entre chaque variable de la pose du robot. Les valeurs contenues dans cette matrice sont très utiles, mais restent fastidieuses à lire, car cette matrice change dynamiquement et régulièrement. Il a donc été important d'implémenter une représentation graphique des informations importantes de cette matrice de covariance. Cette représentation permet de se faire une idée rapide de ces valeurs, sans devoir les analyser une à une. La figure~\ref{cov} présente la représentation choisie de la covariance. La moyenne $\mu_t$ donne la pose estimée du robot. Cette pose estimée est représentée par le point bleu central qui correspond à la position $x,y$ estimée du robot et la droite bleue au milieu des deux autres correspond à la direction estimée du robot. L'ellipse autour de la pose ainsi que les deux autres droites permettent de représenter la matrice de covariance. Voici la définition de la covariance pour mieux comprendre ce que représente la covariance et comprendre comment sont construites cette ellipse et ces droites~: 
 
 $$ Cov(X,Y) = E[(X-E[X])(Y-E[Y])]  $$  
-où $E[] $ désigne l'espérance mathématique. La covariance caractérise la variation simultanée des deux variables aléatoires $X, Y$. Elle est positive lorsque la différence entre les variables aléatoires et leur moyenne ont tendance à être de même signe et négative dans le cas contraire. Soit le vecteur de pose écrit :
+où $E[] $ désigne l'espérance mathématique. La covariance caractérise la variation simultanée des deux variables aléatoires $X, Y$. Elle est positive lorsque la différence entre les variables aléatoires et leur moyenne ont tendance à être de même signe et négative dans le cas contraire. Soit le vecteur de pose écrit~:
 $$\vec{X} = \begin{pmatrix} x \\ y \\ \theta \\ \end{pmatrix}$$
 
-La matrice de covariance pour le vecteur de pose est la suivante :
+La matrice de covariance pour le vecteur de pose est la suivante~:
 
 $$Var(\vec{X})= 
 \begin{pmatrix} 
@@ -85,7 +84,7 @@ Cov(y,x)& Var(y) & Cov(y,\theta) \\
 Cov(\theta,x) & Cov(\theta,y) & Var(\theta)\\
 \end{pmatrix}
 $$
-La diagonale de la matrice de covariance est composée des variances des variables aléatoires de $\vec{X}$ ce qui est normal, car $Cov(X,X)= Var(X)$. La matrice de covariance est une matrice symétrique, car $Cov(X,Y)=Cov(Y,X)$. Pour en revenir à la représentation de la matrice de covariance,  l'angle d'écartement entre les deux droites de notre représentation est donné par $Var(\theta)$. $Var(\theta)$ caractérise donc la dispersion des valeurs possibles de la direction du robot. Plus cette variance est petite et plus la direction estimée du robot est sure et inversement plus elle est grande et plus la direction est incertaine. L'ellipse est définie à l'aide de la sous-matrice suivante : 
+La diagonale de la matrice de covariance est composée des variances des variables aléatoires de $\vec{X}$ ce qui est normal, car $Cov(X,X)= Var(X)$. La matrice de covariance est une matrice symétrique, car $Cov(X,Y)=Cov(Y,X)$. Pour en revenir à la représentation de la matrice de covariance,  l'angle d'écartement entre les deux droites de notre représentation est donné par $Var(\theta)$. $Var(\theta)$ caractérise donc la dispersion des valeurs possibles de la direction du robot. Plus cette variance est petite et plus la direction estimée du robot est sure et inversement plus elle est grande et plus la direction est incertaine. L'ellipse est définie à l'aide de la sous-matrice suivante~: 
 
 $$
 \begin{pmatrix} 
@@ -95,20 +94,20 @@ Cov(y,x)& Var(y) \\
 $$  
 Cette technique\footnote{ Ellipse représentation : \href{http://www.visiondummy.com/2014/04/draw-error-ellipse-representing-covariance-matrix/
 }{www.visiondummy.com}} qui permet de visualiser la covariance d'une matrice à l'aide d'une ellipse peut être appliquée à n'importe quelle matrice de covariance. 
-$Var(x)$ et $Var(y)$ permettent de définir la largeur et la hauteur de l'ellipse à l'aide de l'équation de l'ellipse suivante : 
+$Var(x)= \sigma_x^2$ et $Var(y)= \sigma_y^2$ permettent de définir la largeur et la hauteur de l'ellipse à l'aide de l'équation de l'ellipse suivante~: 
 $$
-\left( \frac{x}{Var(x)} \right)^2 +\left ( \frac{y}{Var(y)}\right)^2 = 1 
+\left( \frac{x}{\sigma_x} \right)^2 +\left ( \frac{y}{\sigma_y}\right)^2 = S  
 $$
-
+où $S$ est obtenu grâce à la table de probabilité  de la distribution du Chi Square à deux degrés de liberté. Pour un intervalle de confidence de 95~\% $S = 5.991$.
  Il faut maintenant déterminer l'orientation de l'ellipse.  Lorsque 
-$Cov(x,y) = 0$ l'orientation de l'ellipse est inchangée. De façon générale l'angle d'orientation peut être défini par la formule suivante :  
+$Cov(x,y) = 0$ l'orientation de l'ellipse est inchangée. De façon générale l'angle d'orientation peut être défini par la formule suivante~:  
 
 
 $$
 \alpha = arctan2 ( V_1.y,V_1.x )
 $$
 
-où $V_1$ correspond au vecteur propre majeur et $\alpha$  correspond à l'angle entre $V_1$ et l'axe des x. Trouver le vecteur propre majeur consiste à résoudre l'équation suivante : 
+où $V_1$ correspond au vecteur propre majeur et $\alpha$  correspond à l'angle entre $V_1$ et l'axe des x. Trouver le vecteur propre majeur consiste à résoudre l'équation suivante: 
 
   $$
   A\vec{v} = \lambda \vec(v)
@@ -125,16 +124,119 @@ où $A$ correspond à la matrice de covariance, $v$ le vecteur propre et la valeur
 \end{center}
 \end{figure}
 
-\section{Tests et Résultats }
+\section{Tests et Résultats}
+
 \subsection{Tests et résultats de l'implémentation de EKF}
+L'environnement de tests construit est représenté dans la figure~\ref{ekfmap}. Il est composé de trois codes QR représentés en rouge. Ils sont placés sur les murs qui sont représentés en noir. 
+Les valeurs initiales de la matrice de covariance sont les suivantes~: 
+$$
+\Sigma =\begin{pmatrix}
+20&0&0\\
+0&20&0\\
+0&0&\pi/2\\
+\end{pmatrix}
+$$
+
+La pose initiale est la suivante~:
+$$
+\mu = \begin{pmatrix}
+110\\
+80\\
+\pi\\
+\end{pmatrix}
+$$
+Les valeurs des paramètres des erreurs de mouvement et d'observation ont été déterminées après avoir effectué des mesures à la main de la pression moyenne des capteurs et des moteurs. Voici les valeurs de ces paramètres~:
+$$\sigma^2_{d^z} = 1$$
+$$\sigma^2_{\rho^z} = 1$$
+$$\alpha_1 = 0.001$$ 
+$$\alpha_2 = 0.01$$ 
+$$\alpha_3= 0.01 $$
+$$\alpha_4= 0.001$$
+
+
+
+Le parcours du robot est aléatoire. Il consiste à avancer tout droit jusqu'à ce qu'une collision avec un mur soit détectée à l'aide du capteur de pression. Après la collision, le robot recule légèrement et puis tourne de quelques degrés sur sa gauche puis recommence à avancer jusqu'à la prochaine collision. À la collision suivante, le même procédé est répété. Pour que le robot parcourt tout son environnement, lorsqu'il a parcouru une longue ligne droite sans percuter de mur, il tourne légèrement sur sa droite .  
+
+Durant le parcours du robot, la matrice de covariance augmente progressivement comme prévu. Elle diminue fortement lors de la détection d'un code QR. Cette forte diminution est due à la précision importante de la caméra du smartphone. La détection du code QR ajuste également la pose du robot de façon importante. Il s'avère que l'algorithme EKF est efficace pour suivre une pose du robot. Cependant, lorsque la pose estimée est fort différente de pose réelle, cet algorithme est moins efficace. 
+
 
 \subsection{Comparaison avec le MCL}
 
+Le même environnement est utilisé pour les tests de l'algorithme MCL. Le capteur infrarouge relève les mesures entre la distance du robot et des murs. L'algorithme est initialisé avec cent particules qui sont réparties uniformément  à l'intérieur des murs. À chaque fin de mouvement, le robot balaye l'environnement avec son capteur de distance sur 45 degrés à droite et 45 degrés à gauche.  Après un tour de l'environnement, le robot est déjà très sûr de sa position. La figure~\ref{TestMCL} montre la pose des particules après ce tour de l'environnement.  La particule en bleu correspond à la pose estimée à l'aide de l'ensemble des particules. MCL permet donc d'avoir très vite une bonne estimation de la pose du robot avec le capteur infrarouge qui est de pression et de fiabilité pourtant très faibles. L'algorithme MCL est également simple à comprendre et à utiliser comparé à EKF. Cependant, il s'avère que l'algorithme MCL a son efficacité qui diminue fortement lorsque des éléments non cartographiés sont ajoutés à l'environnement. En effet, le capteur infrarouge ne fait aucune différence entre un mur cartographié et un élément non cartographié ajouté à l'environnement. Des poses erronées proches des murs sont donc favorisées lorsque le robot se trouve proche de cet élément non cartographié. 
+\begin{figure}
+\begin{center}
+\includegraphics{./../img/testMCL.png}
+\caption{Test MCL}
+\label{TestMCL}
+\end{center}
+\end{figure}
 
 
-\chapter{Occupancy Grid}
+
+
+
+
+\chapter{Grille d'occupation et recherche de chemin}
 \label{chap:Occupancy Grid}
+Ce chapitre est destiné à expliquer comment une grille d'occupation est complétée dynamiquement à l'aide de l'algorithme EKF pour par la suite construire un graphe qui permet de faire une recherche de chemin. Trois éléments permettent de mettre la carte à jour~: le capteur de pression, le capteur infrarouge et le trajet du robot. Les sections suivantes décrivent comment ces éléments mettent la grille d'occupation à jour. 
+\section{Construction de la grille d'occupation}
+Les valeurs de mise à jour sont proportionnelles à la covariance. Lorsque la covariance est moins importante, le robot est plus certain de sa pose. Il est donc également plus certain de la position des obstacles qu'il découvre durant son parcours. Il peut donc compléter la grille d'occupation avec un facteur de pertinence plus important. 
+\subsection{Capteur de pression}
+Le capteur de pression se déclenche lorsqu'un objet percute le pare-chocs avant. Il est cependant impossible de déterminer d'où provient la pression. Une pression sur le bord droit ou sur le bord gauche du pare-chocs est identifiée indifféremment. La figure~\ref{CapteurPression}  montre que la pression du pare-chocs augmente fortement la probabilité (la nuance de rouge est forte) des cases devant toute la largeur du pare-chocs et non seulement devant le centre du robot.  
 
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/pression_button.png}
+\caption{Capteur de pression}
+\label{CapteurPression}
+\end{center}
+\end{figure}
+
+\subsection{Capteur infrarouge}
+Le capteur infrarouge permet de détecter la présence d'objets placés devant le robot. Il est donc possible d'augmenter la probabilité de la case où le capteur a détecté un objet. Pour les cases entre l'objet et le robot, si le capteur n'a pas détecté une distance plus courte, c'est que ces cases ne contiennent pas d'objet. Les cases entre le robot et l'objet vont donc diminuer leur probabilité d'être occupées (voir figure~\ref{CapteurInfrarouge}). Il faut cependant prendre en considération la largeur de la case et la largeur balayée par le capteur. En effet, si la case est très grande et la largeur balayée petite, il est possible que le faisceau laser ne détecte pas l'objet, car il passe à côté. Cette case est donc considérée comme vide à tort.      
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/irGrilleMap.png}
+\caption{Capteur infrarouge}
+\label{CapteurInfrarouge}
+\end{center}
+\end{figure}
+
+
+\subsection{Trajet}
+Lors d'un trajet d'un point A à un point B, si aucun objet n'est détecté à l'aide du capteur de pression avant, la probabilité d'avoir des objets dans les cases empruntées durant le trajet est diminuée. La figure~\ref{Trajet} représente cette situation où le trajet du robot est dessiné en rouge.  Après avoir avancé d'une certaine distance, le robot touche un mur, la probabilité d'être dans une case occupée augmente donc près du mur. Cependant, la probabilité que des cases soient occupées diminue sur le trajet où aucun obstacle n'a été détecté. 
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/trajetGrille.png}
+\caption{Trajet}
+\label{Trajet}
+\end{center}
+\end{figure}
+
+\section{Recherche de chemin}
+Le chapitre~\ref{chap:Algorithmesderecherchechemin} décrit en détail la manière de construire un graphe à l'aide des cartes de l'environnement. Il décrit également la manière de l'utiliser pour construire un chemin entre un point de départ et un point d'arrivée. Dans la figure~\ref{RechercheDeChemin}, les lignes noires correspondent aux murs de l'environnement qui ont été cartographiés au préalable et enregistrés dans un fichier SVG. La position de départ du robot est représentée en bleu et la position d'arrivée en rose. Le chemin est représenté en bleu. Il est calculé à l'aide d' un algorithme de recherche de chemin dans un graphe. Le chemin est calculé en évitant de percuter les murs. Pour éviter de percuter les murs, le graphe est généré de façon à ne pas relier deux noeuds qui coupent un mur. Finalement, un espace minimum doit être respecté pour éviter de percuter les murs durant les mouvements. C'est pour cette raison que certains noeuds trop proches des murs ne sont pas reliés aux autres noeuds.   
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{./../img/path_Finding.png}
+\caption{Recherche de chemin}
+\label{RechercheDeChemin}
+\end{center}
+\end{figure}
+
+De la même façon, il est possible de diminuer l'espace praticable pour le robot à l'aide de la grille d'occupation générée dynamiquement. Il est ainsi possible de construire dynamiquement des chemins en prenant en considération des objets non cartographiés au préalable. La figure~\ref{RechercheDeCheminOccupation} représente le parcours du robot entre un point A et B. Il est différent du parcours de la figure~\ref{RechercheDeChemin}. Il est adapté pour prendre en considération les objets détectés dynamiquement et enregistrés dans la grille d'occupation.  Un noeud du graphe qui est dans une case considérée comme occupée n'est pas joignable. Il n'y a donc pas d'arêtes entre un noeud dans une case occupée et un autre noeud dans une case occupée ou non. De la même façon que pour les murs, un noeud est également non joignable s'il se trouve trop proche d'une case occupée.
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{./../img/occupancypath.png}
+\caption{Recherche de chemin dans la grille d'occupation}
+\label{RechercheDeCheminOccupation}
+\end{center}
+\end{figure}
 
 
 
