@@ -68,9 +68,12 @@
     }%
     \else
     \hypersetup{%
-      urlcolor=umonsdarkgreen,
+      urlcolor=black,
+      citecolor=black,
+      linkcolor=black,
+       urlcolor=umonsdarkgreen,
       citecolor=umonsdarkblue,
-      linkcolor=umonsred,
+       linkcolor=umonsred,
     }%
     \fi
   }}
